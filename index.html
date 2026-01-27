@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nation President Simulator</title>
+    <style>
+        body { margin:0; background:#111; color:#fff; font-family:Arial; overflow:hidden; }
+        canvas { display:block; cursor:pointer; }
+        #ui { position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.8); padding:20px; border-radius:10px; }
+        button { background:#4a90e2; color:white; border:none; padding:10px 20px; margin:5px; border-radius:5px; cursor:pointer; }
+        button:hover { background:#357abd; }
+        #stats { font-size:14px; line-height:1.5; }
+        #news { position:absolute; bottom:10px; left:10px; width:300px; height:150px; overflow-y:auto; background:rgba(0,0,0,0.8); padding:10px; font-size:12px; }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="ui">
+        <h3>Presidente di: <span id="nationName">Italia</span></h3>
+        <div id="stats">
+            GDP: $<span id="gdp">1000</span>B | Pop: <span id="pop">60</span>M | Approv: <span id="approval">50</span>%<br>
+            Mil: <span id="military">100</span> | Dip: <span id="diplo">0</span> | Debito: $<span id="debt">200</span>B
+        </div>
+        <button onclick="selectNation()">Seleziona Nazione</button>
+        <button onclick="setTaxes(0.3)">Tasse Basse</button>
+        <button onclick="setTaxes(0.5)">Tasse Medie</button>
+        <button onclick="setTaxes(0.7)">Tasse Alte</button>
+        <button onclick="buildInfra()">Infrastrutture (+GDP)</button>
+        <button onclick="recruitMil()">Recluta Esercito (+Mil)</button>
+        <button onclick="allyRandom()">Alleanza Casuale</button>
+        <button onclick="declareWar()">Dichiara Guerra</button>
+        <button onclick="tradeBoost()">Commercio (+GDP)</button>
+        <select id="winMode">
+            <option>Dominio Assoluto</option>
+            <option>Prosperità Globale</option>
+        </select>
+        <button onclick="saveGame()">Salva</button> <button onclick="loadGame()">Carica</button>
+    </div>
+    <div id="news"></div>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Nazioni del mondo (espandibile a 200+)
+        const nationsData = {
+            'Italia': { pop:60, gdp:2000, military:80, debt:2500, approval:55, color:'#00ff00', flag:'🇮🇹', rivals:['Francia','Germania'] },
+            'USA': { pop:330, gdp:25000, military:500, debt:30000, approval:45, color:'#ff0000', flag:'🇺🇸' },
+            'Cina': { pop:1400, gdp:18000, military:400, debt:10000, approval:90, color:'#ff9900', flag:'🇨🇳' },
+            'Russia': { pop:145, gdp:1500, military:300, debt:500, approval:70, color:'#0000ff', flag:'🇷🇺' },
+            'Francia': { pop:67, gdp:2800, military:100, debt:3000, approval:50, color:'#ffff00', flag:'🇫🇷' },
+            // Aggiungi altre: Germania, UK, India, Brasile... (centinaia possibili)
+        };
+
+        let game = {
+            year: 2026, month:1, day:1,
+            playerNation: 'Italia',
+            nations: JSON.parse(JSON.stringify(nationsData)), // Copia dati
+            player: nationsData['Italia'],
+            otherNations: Object.keys(nationsData).filter(n => n !== 'Italia'),
+            diplomacy: {}, // { 'USA': 'ally' | 'neutral' | 'enemy' }
+            events: [],
+            winCondition: 'Dominio Assoluto',
+            gameSpeed: 0.1, // Mesi/giorno
+            paused: false
+        };
+
+        // Inizializza diplomazia
+        Object.keys(game.nations).forEach(n => game.diplomacy[n] = 'neutral');
+
+        // UI Updates
+        function updateUI() {
+            document.getElementById('nationName').textContent = game.playerNation + ' ' + game.player.flag;
+            document.getElementById('gdp').textContent = Math.floor(game.player.gdp);
+            document.getElementById('pop').textContent = Math.floor(game.player.pop);
+            document.getElementById('approval').textContent = Math.floor(game.player.approval);
+            document.getElementById('military').textContent = Math.floor(game.player.military);
+            document.getElementById('diplo').textContent = Object.keys(game.diplomacy).filter(n => game.diplomacy[n]==='ally').length;
+            document.getElementById('debt').textContent = Math.floor(game.player.debt);
+            document.getElementById('winMode').value = game.winCondition;
+        }
+
+        // Selezione Nazione
+        function selectNation() {
+            const nations = Object.keys(game.nations);
+            const choice = nations[Math.floor(Math.random() * nations.length)];
+            game.playerNation = choice;
+            game.player = game.nations[choice];
+            updateUI();
+            addNews(`Presidenza ${choice} iniziata!`);
+        }
+
+        // Economia: Tasse influenzano GDP/approval
+        function setTaxes(rate) {
+            game.player.gdp *= (1 + (rate - 0.4) * 0.2);
+            game.player.approval += (rate < 0.4 ? 10 : rate > 0.6 ? -15 : 0);
+            game.player.debt += rate * 100;
+            addNews(`Tasse impostate al ${Math.floor(rate*100)}%. GDP: ${Math.floor(game.player.gdp)}B`);
+        }
+
+        // Infrastrutture
+        function buildInfra() {
+            game.player.gdp += 50;
+            game.player.debt += 100;
+            game.player.approval += 5;
+            addNews('Infrastrutture costruite. +50 GDP, -100 debito.');
+        }
+
+        // Militare
+        function recruitMil() {
+            game.player.military += 20;
+            game.player.gdp -= 30;
+            game.player.approval -= 2;
+            addNews('Esercito potenziato. +20 Mil, -30 GDP.');
+        }
+
+        // Diplomazia
+        function allyRandom() {
+            const target = game.otherNations[Math.floor(Math.random()*game.otherNations.length)];
+            if (game.diplomacy[target] === 'neutral') {
+                game.diplomacy[target] = 'ally';
+                game.player.gdp += 20;
+                addNews(`Alleanza con ${target}! +20 GDP commercio.`);
+            }
+        }
+
+        function declareWar() {
+            const target = game.otherNations[Math.floor(Math.random()*game.otherNations.length)];
+            if (game.diplomacy[target] === 'neutral' || 'ally') {
+                game.diplomacy[target] = 'enemy';
+                const winChance = game.player.military / (game.player.military + game.nations[target].military);
+                if (Math.random() < winChance) {
+                    game.player.gdp += game.nations[target].gdp * 0.5;
+                    game.nations[target].gdp *= 0.5;
+                    addNews(`Vittoria su ${target}! +GDP conquistato.`);
+                } else {
+                    game.player.gdp *= 0.8;
+                    game.player.military *= 0.7;
+                    addNews(`Sconfitta contro ${target}. Perdite pesanti.`);
+                }
+            }
+        }
+
+        function tradeBoost() {
+            game.player.gdp += 30;
+            addNews('Commercio boost. +30 GDP.');
+        }
+
+        // Eventi Random (centinaia possibili)
+        function randomEvent() {
+            const events = [
+                () => { game.player.gdp += 100; return 'Boom economico! +100 GDP'; },
+                () => { game.player.approval -= 20; return 'Scandalo politico! -20 Approvazione'; },
+                () => { game.player.pop += 1; return 'Natalità alta! +1M Pop'; },
+                () => { game.player.debt += 500; return 'Crisi debito! +500B Debito'; },
+                // Espandi: crisi migrazioni, pandemie, tech breakthrough, elezioni...
+            ];
+            const ev = events[Math.floor(Math.random()*events.length)]();
+            ev();
+            addNews(ev());
+        }
+
+        // News Log
+        function addNews(msg) {
+            const news = document.getElementById('news');
+            news.innerHTML += `[${game.year}-${game.month}] ${msg}<br>`;
+            news.scrollTop = news.scrollHeight;
+        }
+
+        // Check Vincita
+        function checkWin() {
+            const totalGDP = Object.values(game.nations).reduce((sum, n) => sum + n.gdp, 0);
+            const playerShare = game.player.gdp / totalGDP;
+            if (game.winCondition === 'Dominio Assoluto' && playerShare > 0.8) {
+                alert('VITTORIA! Dominio Assoluto raggiunto.');
+            } else if (game.winCondition === 'Prosperità Globale' && game.player.gdp === Math.max(...Object.values(game.nations).map(n=>n.gdp)) && game.player.approval > 80) {
+                alert('VITTORIA! Nazione più prospera e popolare.');
+            }
+        }
+
+        // Save/Load
+        function saveGame() { localStorage.setItem('nationSim', JSON.stringify(game)); addNews('Partita salvata!'); }
+        function loadGame() { const saved = localStorage.getItem('nationSim'); if(saved) { game = JSON.parse(saved); updateUI(); addNews('Partita caricata!'); } }
+
+        // Render Mappa Mondo (Canvas)
+        function render() {
+            ctx.fillStyle = '#001122';
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+
+            // Mappa semplificata nazioni (cerchi proporzionali)
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const r = 200;
+            Object.entries(game.nations).forEach(([name, data], i) => {
+                const angle = (i / Object.keys(game.nations).length) * Math.PI * 2;
+                const x = cx + Math.cos(angle) * r;
+                const y = cy + Math.sin(angle) * r;
+                const size = Math.sqrt(data.gdp / 100) * 2;
+                ctx.fillStyle = game.diplomacy[name] === 'ally' ? '#00ff00' : game.diplomacy[name] === 'enemy' ? '#ff0000' : data.color;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${name.slice(0,3)} ${data.flag}`, x, y + size + 15);
+                if (name === game.playerNation) {
+                    ctx.strokeStyle = '#ffff00';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+            });
+
+            // UI overlay
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(10,10,300,100);
+            ctx.fillStyle = '#fff';
+            ctx.font = '16px Arial';
+            ctx.fillText(`Anno: ${game.year}`, 20, 30);
+            ctx.fillText(`GDP Share: ${Math.floor(game.player.gdp / Object.values(game.nations).reduce((a,b)=>a+b.gdp,0)*100)}%`, 20, 55);
+        }
+
+        // Game Loop
+        let lastTime = 0;
+        function gameLoop(time) {
+            if (game.paused) { requestAnimationFrame(gameLoop); render(); return; }
+            const delta = time - lastTime;
+            if (delta > 1000 / 60) { // 60FPS
+                // Simula tempo
+                game.day += game.gameSpeed;
+                if (game.day > 30) { game.month++; game.day=1; if (game.month>12) { game.year++; game.month=1; randomEvent(); checkWin(); } }
+
+                // AI rivali (espandono GDP/mil 1%)
+                game.otherNations.forEach(n => {
+                    game.nations[n].gdp *= 1.001;
+                    game.nations[n].military *= 1.0005;
+                });
+
+                render();
+                lastTime = time;
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Input
+        canvas.addEventListener('click', (e) => {
+            // Click su nazione per diplomazia
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            // Logica hit detection espandibile
+            addNews('Clic mappato (espandi per target nazioni)');
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Controlli
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ') { game.paused = !game.paused; addNews(game.paused ? 'Pausa' : 'Ripresa'); }
+            if (e.key === 's') saveGame();
+            if (e.key === 'l') loadGame();
+        });
+
+        // Win Mode
+        document.getElementById('winMode').addEventListener('change', (e) => game.winCondition = e.target.value);
+
+        // Init
+        updateUI();
+        addNews('Benvenuto Presidente! Seleziona nazione e governa.');
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
