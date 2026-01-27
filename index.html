@@ -3,98 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nation President Simulator - COMPLETO</title>
+    <title>Nation President Simulator - MAPPA MONDIALE REALISTICA</title>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { 
             background: linear-gradient(135deg, #0c0c0c, #1a1a2e, #16213e); 
-            color:#fff; 
-            font-family:'Segoe UI',Arial,sans-serif; 
-            overflow:hidden;
+            color:#fff; font-family:'Segoe UI',Arial,sans-serif; overflow:hidden;
         }
         canvas { display:block; cursor: crosshair; }
         #ui { 
             position:absolute; top:15px; left:15px; 
-            background: rgba(0,0,0,0.92); padding:25px; border-radius:15px; 
-            border: 2px solid #4a90e2; backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(74,144,226,0.3); min-width: 380px;
+            background: rgba(0,0,0,0.95); padding:25px; border-radius:20px; 
+            border: 3px solid #4a90e2; backdrop-filter: blur(15px);
+            box-shadow: 0 10px 40px rgba(74,144,226,0.4); min-width: 420px;
         }
         #title { 
-            color:#4a90e2; font-size:26px; font-weight:bold; text-align:center; 
-            margin-bottom:15px; text-shadow: 0 0 15px #4a90e2;
+            color:#4a90e2; font-size:28px; font-weight:bold; text-align:center; 
+            margin-bottom:18px; text-shadow: 0 0 20px #4a90e2; letter-spacing: 2px;
         }
         button { 
             background: linear-gradient(45deg, #4a90e2, #357abd); color:white; 
-            border:none; padding:12px 20px; margin:4px; border-radius:8px; 
-            cursor:pointer; font-weight:bold; transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(74,144,226,0.4);
+            border:none; padding:14px 22px; margin:5px; border-radius:10px; 
+            cursor:pointer; font-weight:bold; transition: all 0.3s; font-size:14px;
+            box-shadow: 0 5px 20px rgba(74,144,226,0.4);
         }
-        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74,144,226,0.6); }
-        button:active { transform: translateY(0); }
+        button:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(74,144,226,0.6); }
         button.danger { background: linear-gradient(45deg, #e74c3c, #c0392b); }
         button.success { background: linear-gradient(45deg, #27ae60, #229954); }
+        button.neutral { background: linear-gradient(45deg, #f39c12, #e67e22); }
         #stats { 
-            font-size:16px; line-height:1.6; margin:15px 0;
-            background: rgba(255,255,255,0.05); padding:15px; border-radius:8px;
+            font-size:17px; line-height:1.7; margin:18px 0; background: rgba(255,255,255,0.08); 
+            padding:20px; border-radius:12px; border: 1px solid rgba(74,144,226,0.3);
         }
-        .stat-bar {
-            width:100%; height:10px; background:rgba(255,255,255,0.1); 
-            border-radius:5px; margin:5px 0; overflow:hidden;
-        }
-        .stat-fill { height:100%; transition: width 0.5s; border-radius:5px; }
+        .stat-bar { width:100%; height:12px; background:rgba(255,255,255,0.12); border-radius:6px; margin:6px 0; overflow:hidden; }
+        .stat-fill { height:100%; transition: width 0.6s ease; border-radius:6px; }
         #news { 
-            position:absolute; bottom:15px; right:15px; 
-            width:420px; height:320px; overflow-y:auto; 
-            background:rgba(0,0,0,0.92); padding:20px; border-radius:15px;
-            border: 2px solid #f39c12; font-size:14px; line-height:1.5;
+            position:absolute; bottom:20px; right:20px; width:450px; height:350px; 
+            overflow-y:auto; background:rgba(0,0,0,0.95); padding:25px; border-radius:20px;
+            border: 3px solid #f39c12; font-size:15px; line-height:1.6;
         }
-        .news-item { 
-            margin-bottom:12px; padding:12px; 
-            background:rgba(243,156,18,0.15); border-radius:8px; 
-            border-left: 4px solid #f39c12;
-        }
-        select { 
-            background:#2c3e50; color:white; border:1px solid #4a90e2; 
-            padding:10px; border-radius:5px; margin:5px;
-        }
-        #instructions {
-            position:absolute; top:15px; right:15px; 
-            background:rgba(0,0,0,0.8); padding:15px; border-radius:10px;
-            font-size:12px; max-width:300px; line-height:1.4;
-        }
+        .news-item { margin-bottom:15px; padding:15px; background:rgba(243,156,18,0.2); border-radius:12px; border-left: 5px solid #f39c12; }
+        .news-victory { background: rgba(46,204,113,0.4) !important; border-left-color: #27ae60 !important; }
+        select { background:#2c3e50; color:white; border:2px solid #4a90e2; padding:12px; border-radius:8px; margin:8px; font-size:14px; }
+        #minimap { position:absolute; bottom:20px; left:20px; width:200px; height:120px; background:rgba(0,0,0,0.8); border-radius:15px; border:2px solid #9b59b6; }
     </style>
 </head>
 <body>
     <canvas id="canvas"></canvas>
+    <canvas id="minimap"></canvas>
     
     <div id="ui">
-        <div id="title">🌍 NATION PRESIDENT SIMULATOR 2026</div>
-        <div style="font-size:18px; margin-bottom:10px;">
-            🇮🇹 <span id="nationName">Italia</span>
+        <div id="title">🌐 PRESIDENT SIMULATOR 2026</div>
+        <div style="font-size:20px; margin-bottom:12px; text-align:center;">
+            <span id="flag">🇮🇹</span> <span id="nationName">Italia</span>
         </div>
         
         <div id="stats">
             💰 <strong>GDP:</strong> $<span id="gdp">2100</span>B 
-            <div class="stat-bar"><div id="gdpBar" class="stat-fill" style="background:linear-gradient(90deg,#27ae60,#2ecc71);width:42%"></div></div>
+            <div class="stat-bar"><div id="gdpBar" class="stat-fill" style="background:linear-gradient(90deg,#27ae60,#2ecc71,#27ae60);width:35%"></div></div>
             
             👥 <strong>Popolazione:</strong> <span id="pop">60</span>M 
-            <div class="stat-bar"><div id="popBar" class="stat-fill" style="background:linear-gradient(90deg,#3498db,#5dade2);width:30%"></div></div>
+            <div class="stat-bar"><div id="popBar" class="stat-fill" style="background:linear-gradient(90deg,#3498db,#5dade2);width:25%"></div></div>
             
             👍 <strong>Approvazione:</strong> <span id="approval">58</span>% 
             <div class="stat-bar"><div id="approvalBar" class="stat-fill" style="background:linear-gradient(90deg,#f39c12,#e67e22);width:58%"></div></div>
             
             ⚔️ <strong>Militare:</strong> <span id="military">95</span> 
-            <div class="stat-bar"><div id="militaryBar" class="stat-fill" style="background:linear-gradient(90deg,#e74c3c,#c0392b);width:19%"></div></div>
+            <div class="stat-bar"><div id="militaryBar" class="stat-fill" style="background:linear-gradient(90deg,#e74c3c,#c0392b);width:16%"></div></div>
             
             🤝 <strong>Alleanze:</strong> <span id="diplo">0</span> 
             <div class="stat-bar"><div id="diploBar" class="stat-fill" style="background:linear-gradient(90deg,#9b59b6,#8e44ad);width:0%"></div></div>
             
             💸 <strong>Debito:</strong> $<span id="debt">2850</span>B
+            <div style="font-size:13px; color:#f39c12; margin-top:10px;">
+                📊 Quota GDP Mondiale: <span id="worldShare">4.2</span>%
+            </div>
         </div>
 
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:15px 0;">
-            <button onclick="selectNationRandom()" style="grid-column:span 2; background:linear-gradient(45deg,#9b59b6,#8e44ad);">
-                🎲 Nuova Nazione
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:20px 0;">
+            <button onclick="selectNationRandom()" style="grid-column:span 2; background:linear-gradient(45deg,#9b59b6,#8e44ad)">
+                🎲 Cambia Nazione
             </button>
             
             <button onclick="setTaxesLow()">💸 Tasse Basse</button>
@@ -104,78 +92,87 @@
             <button class="success" onclick="boostTrade()">🌐 Commercio</button>
             
             <button class="danger" onclick="recruitMilitary()">⚔️ Esercito</button>
-            <button onclick="makeAlliance()">🤝 Alleanza</button>
+            <button class="neutral" onclick="makeAlliance()">🤝 Alleanza</button>
             
-            <button class="danger" onclick="declareWar()">💥 Guerra</button>
-            <button onclick="randomEvent()">🎲 Evento</button>
+            <button class="danger" onclick="declareWar()">💥 Dichiarare Guerra</button>
+            <button onclick="randomEvent()">🎲 Evento Casuale</button>
             
-            <button onclick="nextMonth()" style="grid-column:span 2; background:linear-gradient(45deg,#27ae60,#229954);">
-                ⏩ Mese Successivo
+            <button onclick="nextMonth()" style="grid-column:span 2; background:linear-gradient(45deg,#27ae60,#229954); font-size:16px">
+                ⏩ PROSSIMO MESE
             </button>
         </div>
 
-        <div>
+        <div style="text-align:center">
             <select id="winMode">
                 <option>🌍 Dominio Assoluto (80% GDP mondiale)</option>
-                <option>💎 Prosperità (GDP #1 + 80% approv.)</option>
-                <option>⏳ Sopravvivenza (2036)</option>
+                <option>💎 Superpotenza (GDP #1 + 85% approv.)</option>
+                <option>⏳ Longevità (2038)</option>
             </select>
         </div>
-        <div style="margin-top:10px;">
-            <button onclick="saveGame()">💾 Salva</button>
-            <button onclick="loadGame()">📂 Carica</button>
-            <button onclick="togglePause()">⏸️ Pausa</button>
+        <div style="margin-top:15px; text-align:center; font-size:13px;">
+            <button onclick="saveGame()">💾 Salva Partita</button>
+            <button onclick="loadGame()">📂 Carica Partita</button>
+            <button onclick="togglePause()" id="pauseBtn">⏸️ Pausa</button>
         </div>
     </div>
 
     <div id="news"></div>
 
-    <div id="instructions">
-        <strong>🎮 CONTROLLI:</strong><br>
-        🖱️ <strong>Clic:</strong> Seleziona nazioni<br>
-        🖱️ <strong>Wheel:</strong> Zoom mappa<br>
-        ⌨️ <strong>SPAZIO:</strong> Pausa<br>
-        ⌨️ <strong>S:</strong> Salva | <strong>L:</strong> Carica<br>
-        <strong>🎯 Obiettivo:</strong> Dominio mondiale!
-    </div>
-
     <script>
-        // INIT CANVAS
+        // CANVAS PRINCIPALE + MINIMAP
         const canvas = document.getElementById('canvas');
+        const minimap = document.getElementById('minimap');
         const ctx = canvas.getContext('2d');
+        const mctx = minimap.getContext('2d');
+        
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        minimap.width = 200; minimap.height = 120;
 
-        // DATI NAZIONI COMPLETE (20+ con posizioni mappa reale)
-        const nationsBase = {
-            'Italia':     { pop:60, gdp:2100, mil:95, debt:2850, app:58, color:'#00ff41', flag:'🇮🇹', x:0.42, y:0.58, continent:'EU' },
-            'USA':        { pop:340, gdp:28500, mil:520, debt:35000, app:48, color:'#ff2222', flag:'🇺🇸', x:0.15, y:0.45, continent:'NA' },
-            'Cina':       { pop:1410, gdp:19500, mil:450, debt:12000, app:92, color:'#ff8c00', flag:'🇨🇳', x:0.88, y:0.48, continent:'AS' },
-            'Russia':     { pop:144, gdp:1850, mil:320, debt:650, app:72, color:'#4169e1', flag:'🇷🇺', x:0.65, y:0.35, continent:'EU' },
-            'Germania':   { pop:84, gdp:4400, mil:85, debt:2800, app:62, color:'#ffd700', flag:'🇩🇪', x:0.38, y:0.48, continent:'EU' },
-            'Francia':    { pop:68, gdp:3100, mil:115, debt:3200, app:54, color:'#ffff00', flag:'🇫🇷', x:0.36, y:0.55, continent:'EU' },
-            'Giappone':   { pop:123, gdp:5200, mil:70, debt:9500, app:68, color:'#ff1493', flag:'🇯🇵', x:0.95, y:0.42, continent:'AS' },
-            'UK':         { pop:68, gdp:3400, mil:95, debt:3100, app:52, color:'#8b0000', flag:'🇬🇧', x:0.32, y:0.50, continent:'EU' },
-            'India':      { pop:1420, gdp:3800, mil:180, debt:2800, app:65, color:'#ff6600', flag:'🇮🇳', x:0.80, y:0.68, continent:'AS' },
-            'Brasile':    { pop:216, gdp:2200, mil:85, debt:1600, app:48, color:'#00ff00', flag:'🇧🇷', x:0.25, y:0.78, continent:'SA' },
-            'Canada':     { pop:40, gdp:2200, mil:45, debt:1800, app:72, color:'#ff0000', flag:'🇨🇦', x:0.12, y:0.35, continent:'NA' },
-            'Australia':  { pop:26, gdp:1700, mil:40, debt:900, app:75, color:'#00bfff', flag:'🇦🇺', x:0.92, y:0.88, continent:'OC' },
-            'CoreaSud':   { pop:52, gdp:1900, mil:75, debt:850, app:78, color:'#00ff88', flag:'🇰🇷', x:0.90, y:0.47, continent:'AS' },
-            'Spagna':     { pop:47, gdp:1600, mil:55, debt:1700, app:55, color:'#ff69b4', flag:'🇪🇸', x:0.35, y:0.60, continent:'EU' },
-            'Messico':    { pop:130, gdp:1500, mil:65, debt:650, app:45, color:'#32cd32', flag:'🇲🇽', x:0.20, y:0.55, continent:'NA' },
-            'Turchia':    { pop:85, gdp:1200, mil:150, debt:500, app:60, color:'#ff4500', flag:'🇹🇷', x:0.50, y:0.52, continent:'AS' },
-            'Egitto':     { pop:110, gdp:450, mil:120, debt:200, app:55, color:'#gold', flag:'🇪🇬', x:0.55, y:0.65, continent:'AF' },
-            'ArabiaSaudita':{ pop:36, gdp:1100, mil:90, debt:300, app:70, color:'#000080', flag:'🇸🇦', x:0.70, y:0.62, continent:'AS' },
-            'Svezia':     { pop:10, gdp:650, mil:25, debt:300, app:75, color:'#0000ff', flag:'🇸🇪', x:0.33, y:0.46, continent:'EU' },
-            'Olanda':     { pop:18, gdp:1100, mil:30, debt:550, app:68, color:'#ffa500', flag:'🇳🇱', x:0.37, y:0.51, continent:'EU' }
+        // ✅ POSIZIONI REALI MAPPA MONDIALE (coordinate precise)
+        const nationsData = {
+            'USA':        { pop:340, gdp:28500, mil:520, debt:35000, app:48, flag:'🇺🇸', color:'#ff2222', x:0.18, y:0.42, continent:'NA', size:85 },
+            'Canada':     { pop:40, gdp:2200, mil:45, debt:1800, app:72, flag:'🇨🇦', color:'#ff0000', x:0.16, y:0.32, continent:'NA', size:35 },
+            'Messico':    { pop:130, gdp:1500, mil:65, debt:650, app:45, flag:'🇲🇽', color:'#32cd32', x:0.22, y:0.52, continent:'NA', size:28 },
+            'Brasile':    { pop:216, gdp:2200, mil:85, debt:1600, app:48, flag:'🇧🇷', color:'#00ff00', x:0.28, y:0.75, continent:'SA', size:42 },
+            'Argentina':  { pop:46, gdp:650, mil:45, debt:400, app:50, flag:'🇦🇷', color:'#40e0d0', x:0.30, y:0.82, continent:'SA', size:22 },
+            
+            'UK':         { pop:68, gdp:3400, mil:95, debt:3100, app:52, flag:'🇬🇧', color:'#8b0000', x:0.28, y:0.48, continent:'EU', size:32 },
+            'Irlanda':    { pop:5, gdp:550, mil:10, debt:300, app:65, flag:'🇮🇪', color:'#00ff00', x:0.27, y:0.46, continent:'EU', size:18 },
+            'Francia':    { pop:68, gdp:3100, mil:115, debt:3200, app:54, flag:'🇫🇷', color:'#ffff00', x:0.34, y:0.54, continent:'EU', size:35 },
+            'Spagna':     { pop:47, gdp:1600, mil:55, debt:1700, app:55, flag:'🇪🇸', color:'#ff1493', x:0.35, y:0.60, continent:'EU', size:28 },
+            'Portogallo': { pop:10, gdp:300, mil:20, debt:300, app:58, flag:'🇵🇹', color:'#4169e1', x:0.33, y:0.62, continent:'EU', size:20 },
+            'Italia':     { pop:60, gdp:2100, mil:95, debt:2850, app:58, flag:'🇮🇹', color:'#00ff41', x:0.42, y:0.58, continent:'EU', size:38 },
+            'Germania':   { pop:84, gdp:4400, mil:85, debt:2800, app:62, flag:'🇩🇪', color:'#ffd700', x:0.38, y:0.48, continent:'EU', size:40 },
+            'Olanda':     { pop:18, gdp:1100, mil:30, debt:550, app:68, flag:'🇳🇱', color:'#ffa500', x:0.37, y:0.51, continent:'EU', size:25 },
+            'Belgio':     { pop:12, gdp:650, mil:25, debt:600, app:60, flag:'🇧🇪', color:'#0000ff', x:0.36, y:0.52, continent:'EU', size:22 },
+            'Svezia':     { pop:10, gdp:650, mil:25, debt:300, app:75, flag:'🇸🇪', color:'#00bfff', x:0.33, y:0.42, continent:'EU', size:24 },
+            'Norvegia':   { pop:5, gdp:500, mil:15, debt:200, app:78, flag:'🇳🇴', color:'#ff69b4', x:0.32, y:0.38, continent:'EU', size:20 },
+            'Finlandia':  { pop:6, gdp:300, mil:20, debt:250, app:70, flag:'🇫🇮', color:'#ff4500', x:0.35, y:0.40, continent:'EU', size:20 },
+            'Danimarca':  { pop:6, gdp:400, mil:15, debt:200, app:72, flag:'🇩🇰', color:'#00ff88', x:0.34, y:0.44, continent:'EU', size:18 },
+            'Polonia':    { pop:38, gdp:800, mil:80, debt:400, app:55, flag:'🇵🇱', color:'#ff0000', x:0.44, y:0.47, continent:'EU', size:28 },
+            'Grecia':     { pop:10, gdp:250, mil:40, debt:450, app:50, flag:'🇬🇷', color:'#00ced1', x:0.46, y:0.56, continent:'EU', size:22 },
+            
+            'Russia':     { pop:144, gdp:1850, mil:320, debt:650, app:72, flag:'🇷🇺', color:'#4169e1', x:0.65, y:0.35, continent:'EU', size:55 },
+            'Turchia':    { pop:85, gdp:1200, mil:150, debt:500, app:60, flag:'🇹🇷', color:'#ff4500', x:0.52, y:0.54, continent:'AS', size:35 },
+            
+            'Giappone':   { pop:123, gdp:5200, mil:70, debt:9500, app:68, flag:'🇯🇵', color:'#ff1493', x:0.95, y:0.42, continent:'AS', size:45 },
+            'CoreaSud':   { pop:52, gdp:1900, mil:75, debt:850, app:78, flag:'🇰🇷', color:'#00bfff', x:0.92, y:0.47, continent:'AS', size:32 },
+            'Cina':       { pop:1410, gdp:19500, mil:450, debt:12000, app:92, flag:'🇨🇳', color:'#ff8c00', x:0.88, y:0.52, continent:'AS', size:75 },
+            'India':      { pop:1420, gdp:3800, mil:180, debt:2800, app:65, flag:'🇮🇳', color:'#ff6600', x:0.82, y:0.68, continent:'AS', size:52 },
+            'ArabiaSaudita':{ pop:36, gdp:1100, mil:90, debt:300, app:70, flag:'🇸🇦', color:'#b8860b', x:0.72, y:0.62, continent:'AS', size:30 },
+            'Iran':       { pop:89, gdp:500, mil:120, debt:200, app:65, flag:'🇮🇷', color:'#8b0000', x:0.62, y:0.58, continent:'AS', size:28 },
+            'Egitto':     { pop:110, gdp:450, mil:120, debt:200, app:55, flag:'🇪🇬', color:'#ff4500', x:0.58, y:0.66, continent:'AF', size:30 },
+            
+            'Australia':  { pop:26, gdp:1700, mil:40, debt:900, app:75, flag:'🇦🇺', color:'#4169e1', x:0.92, y:0.88, continent:'OC', size:35 }
         };
 
-        // STATO GIOCO
+        // GIOCO
         let game = {
             year: 2026, month: 1, day: 15,
             playerNation: 'Italia',
-            nations: JSON.parse(JSON.stringify(nationsBase)),
-            player: {...nationsBase['Italia']},
+            nations: JSON.parse(JSON.stringify(nationsData)),
+            player: {...nationsData['Italia']},
             diplomacy: {},
             alliances: new Set(),
             enemies: new Set(),
@@ -183,129 +180,130 @@
             winCondition: 'Dominio Assoluto',
             gameSpeed: 1/30,
             paused: false,
-            camera: { x: 0, y: 0, zoom: 1 },
+            camera: { x: 0, y: 0, zoom: 1.2 },
             selectedNation: null,
             totalWorldGDP: 0
         };
 
-        // INIZIALIZZA
+        // INIZIALIZZAZIONE
         Object.keys(game.nations).forEach(name => {
             game.diplomacy[name] = name === game.playerNation ? 'player' : 'neutral';
             game.totalWorldGDP += game.nations[name].gdp;
         });
 
-        // UPDATE UI
+        // UI UPDATE
         function updateUI() {
             document.getElementById('nationName').textContent = game.playerNation;
+            document.getElementById('flag').textContent = game.nations[game.playerNation].flag;
             document.getElementById('gdp').textContent = Math.floor(game.player.gdp).toLocaleString();
             document.getElementById('pop').textContent = Math.floor(game.player.pop).toLocaleString();
-            document.getElementById('approval').textContent = Math.floor(game.player.approval);
+            document.getElementById('approval').textContent = Math.floor(game.player.app);
             document.getElementById('military').textContent = Math.floor(game.player.mil);
             document.getElementById('diplo').textContent = game.alliances.size;
             document.getElementById('debt').textContent = Math.floor(game.player.debt).toLocaleString();
+            document.getElementById('worldShare').textContent = (game.player.gdp/game.totalWorldGDP*100).toFixed(1);
             
-            // Barre statistiche
-            document.getElementById('gdpBar').style.width = `${Math.min(game.player.gdp/40000*100, 100)}%`;
-            document.getElementById('popBar').style.width = `${Math.min(game.player.pop/1500*100, 100)}%`;
-            document.getElementById('approvalBar').style.width = `${Math.min(game.player.app, 100)}%`;
-            document.getElementById('militaryBar').style.width = `${Math.min(game.player.mil/600*100, 100)}%`;
-            document.getElementById('diploBar').style.width = `${Math.min(game.alliances.size/20*100, 100)}%`;
+            // Stat bar updates
+            ['gdp','pop','approval','military','diplo'].forEach(stat => {
+                const bar = document.getElementById(stat + 'Bar');
+                const value = game.player[stat === 'approval' ? 'app' : stat];
+                const max = stat === 'gdp' ? 40000 : stat === 'pop' ? 1500 : stat === 'approval' ? 100 : stat === 'military' ? 600 : 20;
+                bar.style.width = `${Math.min(value/max*100, 100)}%`;
+            });
+            
+            document.getElementById('pauseBtn').textContent = game.paused ? '▶️ Riprendi' : '⏸️ Pausa';
         }
 
-        // FUNZIONI GIOCO
+        // FUNZIONI GIOCO MIGLIORATE
         function selectNationRandom() {
             const choices = Object.keys(game.nations).filter(n => n !== game.playerNation);
             const choice = choices[Math.floor(Math.random() * choices.length)];
             game.playerNation = choice;
             game.player = {...game.nations[choice]};
             game.selectedNation = choice;
+            Object.keys(game.diplomacy).forEach(n => game.diplomacy[n] = n === choice ? 'player' : 'neutral');
             updateUI();
-            addNews(`👑 Nuova presidenza: ${choice} ${game.nations[choice].flag}`);
+            addNews(`👑 <strong>Nuova Presidenza:</strong> ${choice} ${game.nations[choice].flag}`, 'victory');
         }
 
-        function setTaxesLow() { setTaxes(0.25); }
-        function setTaxesHigh() { setTaxes(0.65); }
-        
-        function setTaxes(rate) {
+        function setTaxesLow() { setTaxes(0.25, 'Basse'); }
+        function setTaxesHigh() { setTaxes(0.65, 'Alte'); }
+        function setTaxes(rate, label) {
             const oldGDP = game.player.gdp;
-            game.player.gdp *= (1 + (rate - 0.4) * 0.18);
-            game.player.app += rate < 0.3 ? 10 : rate > 0.6 ? -15 : 0;
-            game.player.debt += rate * game.player.gdp * 0.12;
+            const multiplier = 1 + (rate - 0.4) * 0.20;
+            game.player.gdp *= multiplier;
+            game.player.app += rate < 0.3 ? 12 : rate > 0.6 ? -18 : 3;
+            game.player.debt += rate * game.player.gdp * 0.15;
             game.player.app = Math.max(0, Math.min(100, game.player.app));
-            addNews(`💸 Tasse ${rate < 0.4 ? 'ridotte' : 'alzate'} (${Math.round(rate*100)}%). GDP: ${Math.floor(oldGDP)}B → ${Math.floor(game.player.gdp)}B`);
+            addNews(`💸 Tasse ${label} (${Math.round(rate*100)}%): GDP ${Math.floor(oldGDP)}B → ${Math.floor(game.player.gdp)}B`);
         }
 
         function buildInfrastructure() {
-            game.player.gdp += 90 + Math.random() * 50;
-            game.player.debt += 160;
-            game.player.app += 10;
-            addNews('🏗️ Infrastrutture completate! +90-140 GDP, +10% approvazione');
+            const gain = 100 + Math.random() * 60;
+            game.player.gdp += gain;
+            game.player.debt += 180;
+            game.player.app += 12;
+            addNews(`🏗️ <strong>Infrastrutture completate!</strong> +${gain} GDP, +12% approvazione`);
         }
 
         function boostTrade() {
-            const bonus = 60 + game.alliances.size * 15;
+            const bonus = 70 + game.alliances.size * 20;
             game.player.gdp += bonus;
-            game.player.app += 5;
-            addNews(`🌐 Commercio globale: +${bonus} GDP (${game.alliances.size} alleati)`);
+            game.player.app += 6;
+            addNews(`🌐 <strong>Commercio internazionale:</strong> +${bonus} GDP (${game.alliances.size} alleati)`);
         }
 
         function recruitMilitary() {
-            const cost = 45 + game.player.mil * 0.15;
-            game.player.mil += 30 + Math.random() * 20;
+            const troops = 35 + Math.random() * 25;
+            const cost = 55 + game.player.mil * 0.2;
+            game.player.mil += troops;
             game.player.gdp -= cost;
-            game.player.app -= 5;
-            addNews(`⚔️ Reclutamento: +${Math.floor(30 + Math.random() * 20)} truppe (-${Math.floor(cost)} GDP)`);
+            game.player.app -= 6;
+            addNews(`⚔️ Reclutamento: +${Math.floor(troops)} truppe (-${Math.floor(cost)} GDP)`);
         }
 
         function makeAlliance() {
-            const targets = Object.keys(game.nations).filter(n => 
-                n !== game.playerNation && game.diplomacy[n] === 'neutral'
-            );
-            if (targets.length === 0) return addNews('❌ Nessun candidato per alleanze');
-            
+            const targets = Object.keys(game.nations).filter(n => n !== game.playerNation && game.diplomacy[n] === 'neutral');
+            if (!targets.length) return addNews('❌ Nessun candidato disponibile per alleanze');
             const target = targets[Math.floor(Math.random() * targets.length)];
             game.diplomacy[target] = 'ally';
             game.alliances.add(target);
-            game.player.gdp += 30;
-            addNews(`🤝 Alleanza con ${target} ${game.nations[target].flag}! +30 GDP`);
+            game.player.gdp += 40;
+            addNews(`🤝 <strong>Alleanza firmata con ${target}!</strong> +40 GDP`, 'victory');
         }
 
         function declareWar() {
-            const targets = Object.keys(game.nations).filter(n => 
-                n !== game.playerNation && game.diplomacy[n] !== 'enemy'
-            );
-            if (targets.length === 0) return addNews('❌ Nessun nemico disponibile');
-            
+            const targets = Object.keys(game.nations).filter(n => n !== game.playerNation && game.diplomacy[n] !== 'enemy');
+            if (!targets.length) return addNews('❌ Nessun bersaglio disponibile');
             const target = targets[Math.floor(Math.random() * targets.length)];
             game.diplomacy[target] = 'enemy';
+            game.enemies.add(target);
             
             const powerRatio = game.player.mil / (game.player.mil + game.nations[target].mil);
-            if (Math.random() < powerRatio * 0.75) {
-                const loot = game.nations[target].gdp * 0.35;
+            if (Math.random() < powerRatio * 0.8) {
+                const loot = game.nations[target].gdp * 0.4;
                 game.player.gdp += loot;
-                game.nations[target].gdp *= 0.65;
-                game.player.mil += 15;
-                addNews(`✅ VITTORIA su ${target}! +${Math.floor(loot)}B GDP conquistato`);
+                game.nations[target].gdp *= 0.6;
+                game.player.mil += 20;
+                addNews(`✅ <strong>VITTORIA contro ${target}!</strong> +${Math.floor(loot)}B GDP conquistato`, 'victory');
             } else {
-                game.player.gdp *= 0.82;
-                game.player.mil *= 0.72;
-                game.player.app -= 18;
-                addNews(`💥 SCONFITTA contro ${target}! Perdite devastanti`);
+                game.player.gdp *= 0.8;
+                game.player.mil *= 0.7;
+                game.player.app -= 20;
+                addNews(`💥 <strong>Sconfitta contro ${target}!</strong> Perdite catastrofiche`);
             }
         }
 
         function randomEvent() {
             const events = [
-                { text: '🚀 Boom tecnologico! +250 GDP', effect: () => game.player.gdp += 250 },
-                { text: '🌪️ Disastro naturale! -120 GDP', effect: () => game.player.gdp -= 120 },
-                { text: '📈 Crescita economica! +100 GDP', effect: () => game.player.gdp += 100 },
-                { text: '📰 Scandalo politico! -20% approvazione', effect: () => game.player.app = Math.max(0, game.player.app - 20) },
-                { text: '👶 Boom demografico! +3M popolazione', effect: () => game.player.pop += 3 },
-                { text: '🏭 Crisi industriale! -80 GDP', effect: () => game.player.gdp -= 80 },
-                { text: '⚽ Campionato vinto! +15% approvazione', effect: () => game.player.app = Math.min(100, game.player.app + 15) },
-                { text: '💸 Crisi debito! +2500B debito', effect: () => game.player.debt += 2500 },
-                { text: '🦠 Pandemia! -200 GDP, -10% app', effect: () => { game.player.gdp -= 200; game.player.app -= 10; } },
-                { text: '💎 Scoperta petrolio! +400 GDP', effect: () => game.player.gdp += 400 }
+                { text: '🚀 <strong>Boom tecnologico!</strong> +350 GDP', effect: () => game.player.gdp += 350 },
+                { text: '🌪️ <strong>Disastro naturale!</strong> -150 GDP', effect: () => game.player.gdp -= 150 },
+                { text: '📈 <strong>Crescita economica!</strong> +120 GDP', effect: () => game.player.gdp += 120 },
+                { text: '📰 <strong>Scandalo politico!</strong> -25% approvazione', effect: () => game.player.app = Math.max(0, game.player.app - 25) },
+                { text: '👶 <strong>Boom demografico!</strong> +4M popolazione', effect: () => game.player.pop += 4 },
+                { text: '💎 <strong>Petrolio scoperto!</strong> +500 GDP', effect: () => game.player.gdp += 500 },
+                { text: '⚽ <strong>Mondiale vinto!</strong> +20% approvazione', effect: () => game.player.app = Math.min(100, game.player.app + 20) },
+                { text: '💸 <strong>Crisi debito!</strong> +3000B debito', effect: () => game.player.debt += 3000 }
             ];
             const event = events[Math.floor(Math.random() * events.length)];
             event.effect();
@@ -314,25 +312,21 @@
 
         function nextMonth() {
             game.month++;
-            if (game.month > 12) { 
-                game.year++; 
-                game.month = 1; 
-                game.totalWorldGDP *= 1.025; // Crescita mondiale
-                randomEvent();
-            }
+            if (game.month > 12) { game.year++; game.month = 1; randomEvent(); }
             updateAI();
             checkVictory();
             updateUI();
-            addNews(`📅 ${game.month}/${game.year} - Turno completato`);
+            addNews(`📅 <strong>Mese ${game.month}/${game.year}</strong> - Economia aggiornata`);
         }
 
         function updateAI() {
             Object.entries(game.nations).forEach(([name, nation]) => {
                 if (name === game.playerNation) return;
-                nation.gdp *= 1.012;
-                nation.mil *= 1.003;
-                nation.pop *= 1.0008;
-                nation.app += (Math.random() - 0.5) * 2;
+                nation.gdp *= 1.015;
+                nation.mil *= 1.004;
+                nation.pop *= 1.001;
+                nation.app += (Math.random() - 0.5) * 3;
+                game.totalWorldGDP += nation.gdp * 0.015;
             });
         }
 
@@ -340,76 +334,108 @@
             const playerShare = game.player.gdp / game.totalWorldGDP;
             const isTopGDP = game.player.gdp === Math.max(...Object.values(game.nations).map(n => n.gdp));
             
-            if (game.winCondition.includes('Dominio') && playerShare > 0.8) {
-                alert(`🎉 VITTORIA ASSOLUTA!\nControlli l'80% del GDP mondiale!\nPunteggio finale: ${Math.floor(game.year * 100 + game.month * 10 + game.player.app)}`);
-            } else if (game.winCondition.includes('Prosperità') && isTopGDP && game.player.app > 80) {
-                alert(`🎉 PROSPERITÀ GLOBALE!\n#1 GDP mondiale + 80%+ approvazione!\nLeggenda presidenziale!`);
-            } else if (game.winCondition.includes('Sopravvivenza') && game.year >= 2036) {
-                alert(`🎉 SOPRAVVISSUTO!\n10 anni di presidenza completati!`);
+            if (playerShare > 0.8) {
+                addNews(`🎉 <strong>VITTORIA ASSOLUTA! DOMINIO MONDIALE!</strong>`, 'victory');
+                alert(`🏆 CONGRATULAZIONI! Controlli l'80% del GDP mondiale!\nPunteggio: ${Math.floor(game.year*100 + game.month*10 + game.player.app)}`);
+            } else if (isTopGDP && game.player.app > 85) {
+                addNews(`💎 <strong>SUPERPOTENZA GLOBALE!</strong> #1 GDP + 85% approvazione`, 'victory');
             }
         }
 
-        function addNews(msg) {
+        function addNews(msg, type = '') {
             game.news.unshift(`[${game.year}-${String(game.month).padStart(2,'0')}] ${msg}`);
-            if (game.news.length > 12) game.news.pop();
-            document.getElementById('news').innerHTML = 
-                game.news.map(n => `<div class="news-item">${n}</div>`).join('');
+            if (game.news.length > 15) game.news.pop();
+            const newsDiv = document.getElementById('news');
+            newsDiv.innerHTML = game.news.map((n, i) => 
+                `<div class="news-item ${type && i === 0 ? 'news-victory' : ''}">${n}</div>`
+            ).join('');
+            newsDiv.scrollTop = 0;
         }
 
         function togglePause() {
             game.paused = !game.paused;
-            addNews(game.paused ? '⏸️ GIOCO IN PAUSA' : '▶️ GIOCO RIPRESO');
+            updateUI();
         }
 
-        // RENDER MAPPA
-        function render() {
+        // RENDER MAPPA MONDIALE REALISTICA
+        function renderWorldMap() {
             const w = canvas.width / game.camera.zoom;
             const h = canvas.height / game.camera.zoom;
             
-            // SFONDO TERRESTRE
+            // OCEANO
             const oceanGradient = ctx.createLinearGradient(0, 0, 0, h);
-            oceanGradient.addColorStop(0, '#1e3a8a');
-            oceanGradient.addColorStop(0.5, '#0f172a');
-            oceanGradient.addColorStop(1, '#1e1b4b');
+            oceanGradient.addColorStop(0, '#1e40af');
+            oceanGradient.addColorStop(0.4, '#1e3a8a');
+            oceanGradient.addColorStop(0.7, '#1e1b4b');
+            oceanGradient.addColorStop(1, '#111827');
             ctx.fillStyle = oceanGradient;
             ctx.fillRect(game.camera.x, game.camera.y, w, h);
             
-            // CONTINENTI STILIZZATI
-            ctx.fillStyle = '#2d5a2d';
-            ctx.fillRect(game.camera.x + w*0.15, game.camera.y + h*0.25, w*0.25, h*0.25); // Nord America
-            ctx.fillRect(game.camera.x + w*0.85, game.camera.y + h*0.35, w*0.12, h*0.25); // Asia
-            ctx.fillRect(game.camera.x + w*0.35, game.camera.y + h*0.45, w*0.15, h*0.25); // Europa
-            ctx.fillRect(game.camera.x + w*0.22, game.camera.y + h*0.70, w*0.12, h*0.20); // Sud America
-            ctx.fillRect(game.camera.x + w*0.78, game.camera.y + h*0.60, w*0.18, h*0.15); // India/Indocina
-            ctx.fillRect(game.camera.x + w*0.90, game.camera.y + h*0.80, w*0.08, h*0.15); // Australia
+            // CONTINENTI DETTAGLIATI
+            ctx.save();
+            ctx.translate(game.camera.x + w*0.5, game.camera.y + h*0.5);
+            ctx.scale(w/2.2, h/1.8);
             
-            // NAZIONI
+            // Nord America
+            ctx.fillStyle = '#2d5a2d'; ctx.beginPath();
+            ctx.ellipse(0.1, -0.1, 0.22, 0.35, 0, 0, Math.PI*2); ctx.fill();
+            
+            // Sud America
+            ctx.ellipse(0.15, 0.35, 0.18, 0.4, -0.2, 0, Math.PI*2); ctx.fill();
+            
+            // Europa
+            ctx.fillStyle = '#3a7a3a'; ctx.beginPath();
+            ctx.ellipse(-0.15, 0.05, 0.18, 0.25, 0.3, 0, Math.PI*2); ctx.fill();
+            
+            // Africa
+            ctx.fillStyle = '#2d5a2d'; ctx.beginPath();
+            ctx.ellipse(0.05, 0.35, 0.22, 0.4, 0.1, 0, Math.PI*2); ctx.fill();
+            
+            // Asia
+            ctx.fillStyle = '#3a7a3a'; ctx.beginPath();
+            ctx.ellipse(0.35, 0.15, 0.35, 0.35, -0.1, 0, Math.PI*2); ctx.fill();
+            
+            // Australia
+            ctx.fillStyle = '#2d5a2d'; ctx.beginPath();
+            ctx.ellipse(0.45, 0.65, 0.12, 0.18, 0.4, 0, Math.PI*2); ctx.fill();
+            
+            ctx.restore();
+        }
+
+        function render() {
+            ctx.resetTransform();
+            ctx.imageSmoothingEnabled = false;
+            
+            // MAPPA
+            renderWorldMap();
+            
+            // NAZIONI ALLE POSIZIONI REALI
             Object.entries(game.nations).forEach(([name, data]) => {
-                const x = game.camera.x + data.x * w;
-                const y = game.camera.y + data.y * h;
-                const size = Math.max(25, Math.sqrt(data.gdp / 8)) * game.camera.zoom;
+                const x = game.camera.x + data.x * canvas.width / game.camera.zoom;
+                const y = game.camera.y + data.y * canvas.height / game.camera.zoom;
+                const size = data.size * game.camera.zoom;
                 
-                // Colore diplomazia
+                // Colori diplomazia
                 let color = game.diplomacy[name] === 'ally' ? '#00ff88' : 
                            game.diplomacy[name] === 'enemy' ? '#ff4444' : 
-                           name === game.playerNation ? '#ffff44' : data.color;
+                           name === game.playerNation ? '#ffff44' : 
+                           name === game.selectedNation ? '#ffaa00' : data.color;
                 
-                // Effetto glow
-                const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 1.5);
+                // Glow effect
+                const glow = ctx.createRadialGradient(x, y, 0, x, y, size * 1.8);
                 glow.addColorStop(0, color);
-                glow.addColorStop(0.6, color + 'CC');
+                glow.addColorStop(0.5, color + 'DD');
                 glow.addColorStop(1, color + '00');
-                
                 ctx.fillStyle = glow;
                 ctx.beginPath();
-                ctx.arc(x, y, size * 1.5, 0, Math.PI * 2);
+                ctx.arc(x, y, size * 1.8, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Nazione solida
+                // Nazione principale
                 const solid = ctx.createRadialGradient(x, y, 0, x, y, size);
                 solid.addColorStop(0, color);
-                solid.addColorStop(0.8, color + 'DD');
-                solid.addColorStop(1, color + '66');
+                solid.addColorStop(0.7, color + 'FF');
+                solid.addColorStop(1, color + '88');
                 ctx.fillStyle = solid;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
@@ -417,46 +443,86 @@
                 
                 // Bordo
                 ctx.strokeStyle = name === game.playerNation ? '#ffffff' : 
-                                 name === game.selectedNation ? '#ffff00' : '#ffffff44';
-                ctx.lineWidth = name === game.playerNation ? 4 : 
-                               name === game.selectedNation ? 3 : 2;
+                                 name === game.selectedNation ? '#ffff00' : '#ffffff66';
+                ctx.lineWidth = (name === game.playerNation ? 5 : name === game.selectedNation ? 4 : 2.5) * game.camera.zoom;
                 ctx.lineJoin = 'round';
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 15 * game.camera.zoom;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.stroke();
+                ctx.shadowBlur = 0;
                 
-                // Testi
-                ctx.fillStyle = '#000000EE';
-                ctx.font = `bold ${Math.max(20, 24 * game.camera.zoom)}px Arial`;
+                // Flag
+                ctx.fillStyle = '#000000FF';
+                ctx.font = `bold ${Math.max(28, 36 * game.camera.zoom)}px Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(data.flag, x, y);
                 
+                // Nome abbreviato
                 ctx.fillStyle = '#ffffff';
-                ctx.font = `${Math.max(14, 16 * game.camera.zoom)}px Arial`;
-                ctx.fillText(name.slice(0,3).toUpperCase(), x, y + size + 20);
+                ctx.font = `bold ${Math.max(16, 20 * game.camera.zoom)}px Arial`;
+                ctx.fillText(name.slice(0,3).toUpperCase(), x, y + size + 25 * game.camera.zoom);
                 
-                ctx.font = `${Math.max(12, 14 * game.camera.zoom)}px Arial`;
-                ctx.fillStyle = '#ffffffBB';
-                ctx.fillText(`$${Math.floor(data.gdp/100)}B`, x, y + size + 38);
+                // GDP
+                ctx.font = `${Math.max(14, 18 * game.camera.zoom)}px Arial`;
+                ctx.fillStyle = '#ffffffCC';
+                ctx.fillText(`$${Math.floor(data.gdp/100)}B`, x, y + size + 48 * game.camera.zoom);
             });
             
-            // HUD
-            ctx.fillStyle = 'rgba(0,0,0,0.85)';
-            ctx.fillRect(25, 25, 380, 85);
-            
+            // HUD Principale
+            ctx.fillStyle = 'rgba(0,0,0,0.9)';
+            ctx.fillRect(30, 30, 420, 100);
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 28px Arial';
+            ctx.font = 'bold 32px Arial';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`${game.playerNation} ${game.nations[game.playerNation].flag}`, 40, 55);
-            
+            ctx.fillText(`${game.playerNation} ${game.nations[game.playerNation].flag}`, 50, 65);
+            ctx.font = 'bold 24px Arial';
+            ctx.fillText(`Anno ${game.year} • Mese ${game.month}`, 50, 95);
             ctx.font = 'bold 20px Arial';
-            ctx.fillText(`Anno ${game.year} • Mese ${game.month}`, 40, 82);
+            const share = (game.player.gdp / game.totalWorldGDP * 100).toFixed(1);
+            ctx.fillStyle = share > 50 ? '#00ff88' : share > 20 ? '#f39c12' : '#ffffff';
+            ctx.fillText(`Dominio Globale: ${share}%`, 50, 125);
+        }
+
+        // MINIMAP
+        function renderMinimap() {
+            mctx.fillStyle = '#111';
+            mctx.fillRect(0, 0, 200, 120);
+            renderWorldMapSmall(mctx, 200, 120);
             
-            const playerShare = (game.player.gdp / game.totalWorldGDP * 100).toFixed(1);
-            ctx.fillStyle = playerShare > 50 ? '#00ff88' : playerShare > 20 ? '#f39c12' : '#ffffff';
-            ctx.fillText(`Quota GDP: ${playerShare}%`, 40, 110);
+            Object.entries(game.nations).slice(0, 15).forEach(([name, data]) => {
+                const x = 20 + (Object.keys(game.nations).indexOf(name) % 5) * 35;
+                const y = 25 + Math.floor(Object.keys(game.nations).indexOf(name) / 5) * 20;
+                const size = Math.max(4, data.size / 8);
+                const color = game.diplomacy[name] === 'ally' ? '#00ff88' : name === game.playerNation ? '#ffff44' : data.color;
+                
+                mctx.fillStyle = color;
+                mctx.beginPath();
+                mctx.arc(x, y, size, 0, Math.PI * 2);
+                mctx.fill();
+                
+                mctx.fillStyle = '#fff';
+                mctx.font = '12px Arial';
+                mctx.textAlign = 'center';
+                mctx.textBaseline = 'middle';
+                mctx.fillText(data.flag, x, y);
+            });
+        }
+
+        function renderWorldMapSmall(ctx, w, h) {
+            const oceanGradient = ctx.createLinearGradient(0, 0, 0, h);
+            oceanGradient.addColorStop(0, '#1e40af');
+            oceanGradient.addColorStop(1, '#111827');
+            ctx.fillStyle = oceanGradient;
+            ctx.fillRect(0, 0, w, h);
+            
+            ctx.fillStyle = '#2d5a2d';
+            ctx.fillRect(w*0.1, h*0.1, w*0.25, h*0.3);
+            ctx.fillRect(w*0.75, h*0.2, w*0.25, h*0.4);
+            ctx.fillRect(w*0.25, h*0.4, w*0.15, h*0.3);
         }
 
         // INPUT
@@ -469,54 +535,46 @@
                 const nx = data.x * canvas.width / game.camera.zoom;
                 const ny = data.y * canvas.height / game.camera.zoom;
                 const dist = Math.sqrt((x - nx)**2 + (y - ny)**2);
-                if (dist < Math.sqrt(data.gdp / 8) * 1.5) {
+                if (dist < data.size * 1.5) {
                     game.selectedNation = name;
-                    addNews(`🎯 ${name} selezionata (GDP: $${Math.floor(data.gdp).toLocaleString()}B)`);
+                    addNews(`${data.flag} <strong>${name}</strong> selezionata (GDP: $${Math.floor(data.gdp).toLocaleString()}B)`);
                 }
             });
         });
 
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
-            game.camera.zoom *= e.deltaY > 0 ? 0.9 : 1.1;
-            game.camera.zoom = Math.max(0.4, Math.min(3, game.camera.zoom));
+            const direction = e.deltaY > 0 ? 0.9 : 1.1;
+            game.camera.zoom *= direction;
+            game.camera.zoom = Math.max(0.5, Math.min(3, game.camera.zoom));
         });
 
-        // TASTI
         document.addEventListener('keydown', (e) => {
             switch(e.key.toLowerCase()) {
-                case ' ':
-                    e.preventDefault();
-                    togglePause();
-                    break;
+                case ' ': e.preventDefault(); togglePause(); break;
                 case 's': saveGame(); break;
                 case 'l': loadGame(); break;
                 case 'r': selectNationRandom(); break;
             }
         });
 
-        // SALVA/CARICA
+        // SAVE/LOAD
         function saveGame() {
-            localStorage.setItem('nationPresidentSim_v2', JSON.stringify(game));
-            addNews('💾 Partita salvata con successo!');
+            localStorage.setItem('nationSimPro', JSON.stringify(game));
+            addNews('💾 <strong>Partita salvata</strong>');
         }
-
         function loadGame() {
             try {
-                const saved = localStorage.getItem('nationPresidentSim_v2');
+                const saved = localStorage.getItem('nationSimPro');
                 if (saved) {
-                    const loaded = JSON.parse(saved);
-                    Object.assign(game, loaded);
+                    Object.assign(game, JSON.parse(saved));
                     game.player = game.nations[game.playerNation];
                     updateUI();
-                    addNews('📂 Partita caricata!');
+                    addNews('📂 <strong>Partita caricata</strong>');
                 }
-            } catch(e) {
-                addNews('❌ Errore caricamento');
-            }
+            } catch(e) { addNews('❌ Errore caricamento'); }
         }
 
-        // EVENT LISTENER
         document.getElementById('winMode').addEventListener('change', (e) => {
             game.winCondition = e.target.value;
         });
@@ -528,39 +586,30 @@
 
         // GAME LOOP 60FPS
         let lastTime = 0;
-        function gameLoop(currentTime) {
-            const deltaTime = currentTime - lastTime;
-            
-            if (!game.paused && deltaTime > 1000/60) {
+        function gameLoop(time) {
+            const delta = time - lastTime;
+            if (!game.paused && delta > 1000/60) {
                 game.day += game.gameSpeed;
                 if (game.day >= 30) {
-                    game.month++;
-                    game.day = 1;
-                    if (game.month > 12) {
-                        game.year++;
-                        game.month = 1;
-                    }
+                    game.month++; game.day = 1;
+                    if (game.month > 12) { game.year++; game.month = 1; }
                 }
-                
-                // Auto-eventi rari
-                if (Math.random() < 0.005) randomEvent();
+                if (Math.random() < 0.008) randomEvent();
             }
             
-            ctx.save();
-            ctx.scale(game.camera.zoom, game.camera.zoom);
-            ctx.translate(game.camera.x, game.camera.y);
+            ctx.resetTransform();
             render();
-            ctx.restore();
+            renderMinimap();
             
-            lastTime = currentTime;
+            lastTime = time;
             requestAnimationFrame(gameLoop);
         }
 
-        // AVVIO
+        // START
         updateUI();
-        addNews('🚀 Nation President Simulator avviato!');
-        addNews('🎯 Clicca sulle nazioni per selezionarle');
-        addNews('⚔️ Usa diplomazia, economia e militare per dominare il mondo!');
+        addNews('🌍 <strong>Nation President Simulator - MAPPA MONDIALE</strong>');
+        addNews('🎮 Clicca le nazioni • Ruota per zoom • Spazio = Pausa');
+        addNews('⚔️ Obiettivo: Dominio globale del 80% GDP mondiale!');
         requestAnimationFrame(gameLoop);
     </script>
 </body>
