@@ -2,27 +2,27 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Nation Conquest Simulator</title>
+<title>Nation Conquest – World Map</title>
 <style>
-html,body{margin:0;padding:0;overflow:hidden;background:#0b1020;color:white;font-family:Arial}
+html,body{margin:0;padding:0;overflow:hidden;background:#020617;color:white;font-family:Arial}
 canvas{display:block}
 #ui{
 position:absolute;top:20px;left:20px;
 background:rgba(0,0,0,.9);
-padding:20px;border-radius:15px;
-width:360px;border:2px solid #4a90e2
+padding:15px;border-radius:12px;
+border:2px solid #38bdf8;width:320px
 }
-button{width:100%;margin:5px 0;padding:10px;
-background:#4a90e2;border:none;border-radius:8px;
-color:white;font-weight:bold;cursor:pointer}
+button{width:100%;margin-top:6px;padding:8px;
+background:#38bdf8;border:none;border-radius:8px;
+color:black;font-weight:bold;cursor:pointer}
 #news{
 position:absolute;bottom:20px;right:20px;
-width:420px;height:300px;
-overflow:auto;background:rgba(0,0,0,.85);
-padding:15px;border-radius:15px;
+width:420px;height:280px;overflow:auto;
+background:rgba(0,0,0,.85);
+padding:12px;border-radius:12px;
 border:2px solid orange
 }
-.news-item{margin-bottom:10px;padding:10px;
+.news-item{margin-bottom:8px;padding:8px;
 background:rgba(255,255,255,.1);border-left:5px solid orange}
 .news-war{border-left-color:red}
 .news-victory{border-left-color:#00ff88}
@@ -33,174 +33,148 @@ background:rgba(255,255,255,.1);border-left:5px solid orange}
 <canvas id="canvas"></canvas>
 
 <div id="ui">
-<h2 id="nation">🇮🇹 Italia</h2>
-<p>💰 GDP: <span id="gdp"></span></p>
+<h3 id="nation">🇮🇹 Italia</h3>
 <p>⚔️ Esercito: <span id="mil"></span></p>
-<p>🏰 Città: <span id="cities"></span></p>
-<button onclick="attack()">🚀 Attacca</button>
-<button onclick="nextMonth()">⏩ Prossimo mese</button>
+<p>🏰 Territori: <span id="terr"></span></p>
+<button onclick="attack()">🚀 Attacca territorio</button>
 </div>
 
 <div id="news"></div>
 
 <script>
-// ================= CANVAS =================
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-resize();
-window.onresize = resize;
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+resize(); window.onresize=resize;
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
 
-function resize(){
-canvas.width = innerWidth;
-canvas.height = innerHeight;
+function addNews(t,type=""){
+const d=document.createElement("div");
+d.className="news-item "+(type?`news-${type}`:"");
+d.innerHTML=t;
+document.getElementById("news").prepend(d);
 }
 
-// ================= NEWS =================
-function addNews(text,type=""){
-const div=document.createElement("div");
-div.className="news-item "+(type?`news-${type}`:"");
-div.innerHTML=text;
-document.getElementById("news").prepend(div);
-}
+// =================== MAPPA ===================
+const territories={
+"ITA_N":{name:"Nord Italia",nation:"Italia",x:.46,y:.48,capital:false,adj:["FRA_S","ITA_C"]},
+"ITA_C":{name:"Roma",nation:"Italia",x:.47,y:.53,capital:true,adj:["ITA_N","ITA_S"]},
+"ITA_S":{name:"Sud Italia",nation:"Italia",x:.48,y:.58,capital:false,adj:["ITA_C"]},
 
-// ================= DATI NAZIONI =================
+"FRA_S":{name:"Sud Francia",nation:"Francia",x:.42,y:.50,capital:false,adj:["ITA_N","FRA_C"]},
+"FRA_C":{name:"Parigi",nation:"Francia",x:.40,y:.46,capital:true,adj:["FRA_S"]},
+
+"GER":{name:"Berlino",nation:"Germania",x:.44,y:.44,capital:true,adj:["FRA_C"]}
+};
+
 const nations={
-Italia:{flag:"🇮🇹",x:.45,y:.6,gdp:2100,mil:95,cities:12,color:"#00ff88"},
-USA:{flag:"🇺🇸",x:.2,y:.45,gdp:28000,mil:520,cities:50,color:"#ff4444"},
-Germania:{flag:"🇩🇪",x:.42,y:.5,gdp:4400,mil:85,cities:35,color:"#ffd700"},
-Francia:{flag:"🇫🇷",x:.38,y:.55,gdp:3100,mil:115,cities:38,color:"#ffffff"},
-Russia:{flag:"🇷🇺",x:.65,y:.35,gdp:1850,mil:320,cities:60,color:"#4169e1"},
-Cina:{flag:"🇨🇳",x:.85,y:.55,gdp:19500,mil:450,cities:120,color:"#ff8c00"}
+Italia:{flag:"🇮🇹",mil:90,owned:["ITA_N","ITA_C","ITA_S"]},
+Francia:{flag:"🇫🇷",mil:100,owned:["FRA_S","FRA_C"]},
+Germania:{flag:"🇩🇪",mil:85,owned:["GER"]}
 };
 
-let game={
-player:"Italia",
-year:2026,
-month:1,
-troops:[]
-};
+let player="Italia";
 
-// ================= TROOP =================
-class Troop{
-constructor(fx,fy,tx,ty,target){
-this.x=fx;this.y=fy;
-this.tx=tx;this.ty=ty;
-this.t=0;this.target=target;
-}
-update(){
-this.t+=0.015;
-this.x+= (this.tx-this.x)*0.05;
-this.y+= (this.ty-this.y)*0.05;
-if(this.t>=1){
-resolveBattle(this.target);
-return false;
-}
-return true;
-}
-draw(){
-ctx.fillStyle="yellow";
-ctx.beginPath();
-ctx.arc(this.x,this.y,4,0,Math.PI*2);
-ctx.fill();
-}
-}
-
-// ================= LOGICA =================
-function resolveBattle(target){
-if(Math.random()<0.6){
-nations[target].cities--;
-addNews(`🏰 Città conquistata in ${target}!`,"victory");
-}else{
-addNews(`❌ Attacco fallito contro ${target}`,"war");
-}
-}
+// =================== LOGICA ===================
+function ownsTerritory(n,t){return nations[n].owned.includes(t);}
 
 function attack(){
-const targets=Object.keys(nations).filter(n=>n!==game.player);
-const t=targets[Math.floor(Math.random()*targets.length)];
-const p=nations[game.player];
-const e=nations[t];
+const my=nations[player];
+const possible=Object.entries(territories).filter(([id,t])=>
+t.nation!==player &&
+t.adj.some(a=>ownsTerritory(player,a))
+);
 
-if(p.mil<20){
-addNews("❌ Esercito insufficiente","war");
+if(!possible.length){
+addNews("❌ Nessun territorio confinante","war");
 return;
 }
 
-p.mil-=15;
+const [id,target]=possible[Math.floor(Math.random()*possible.length)];
+const enemy=nations[target.nation];
 
-const fx=p.x*canvas.width;
-const fy=p.y*canvas.height;
-const tx=e.x*canvas.width;
-const ty=e.y*canvas.height;
+my.mil-=10;
+if(Math.random()<0.65){
+my.owned.push(id);
+enemy.owned=enemy.owned.filter(t=>t!==id);
+addNews(`🏰 Conquistato ${target.name}`,"victory");
 
-for(let i=0;i<5;i++){
-game.troops.push(new Troop(
-fx+Math.random()*30,
-fy+Math.random()*30,
-tx,ty,t
-));
+if(target.capital){
+addNews(`👑 Capitale presa! ${target.nation} ANNESSA`,"victory");
+enemy.owned.forEach(t=>my.owned.push(t));
+enemy.owned=[];
 }
-
-addNews(`🚀 Attacco lanciato contro ${t}`,"war");
+}else{
+addNews(`❌ Attacco fallito su ${target.name}`,"war");
 }
-
-function nextMonth(){
-game.month++;
-addNews(`📅 ${game.month}/${game.year}`);
 updateUI();
 }
 
-// ================= UI =================
+// =================== UI ===================
 function updateUI(){
-const p=nations[game.player];
-document.getElementById("gdp").textContent=p.gdp+" B";
-document.getElementById("mil").textContent=p.mil;
-document.getElementById("cities").textContent=p.cities;
+document.getElementById("nation").innerHTML=
+nations[player].flag+" "+player;
+document.getElementById("mil").textContent=
+nations[player].mil;
+document.getElementById("terr").textContent=
+nations[player].owned.length;
 }
 updateUI();
 
-// ================= RENDER =================
-function render(){
+// =================== RENDER ===================
+function draw(){
 ctx.clearRect(0,0,canvas.width,canvas.height);
 
 // oceano
 ctx.fillStyle="#1e3a8a";
 ctx.fillRect(0,0,canvas.width,canvas.height);
 
-// continenti
-ctx.fillStyle="#166534";
-ctx.fillRect(canvas.width*.1,canvas.height*.3,canvas.width*.3,canvas.height*.4);
-ctx.fillRect(canvas.width*.3,canvas.height*.45,canvas.width*.25,canvas.height*.3);
-ctx.fillRect(canvas.width*.75,canvas.height*.35,canvas.width*.2,canvas.height*.4);
-
-// nazioni
-Object.values(nations).forEach(n=>{
-const x=n.x*canvas.width;
-const y=n.y*canvas.height;
-ctx.fillStyle=n.color;
+// europa (forma reale semplificata)
+ctx.fillStyle="#14532d";
 ctx.beginPath();
-ctx.arc(x,y,22,0,Math.PI*2);
+ctx.moveTo(canvas.width*.35,canvas.height*.38);
+ctx.lineTo(canvas.width*.55,canvas.height*.38);
+ctx.lineTo(canvas.width*.55,canvas.height*.65);
+ctx.lineTo(canvas.width*.35,canvas.height*.65);
+ctx.closePath();
 ctx.fill();
-ctx.font="28px Arial";
-ctx.textAlign="center";
-ctx.textBaseline="middle";
-ctx.fillText(n.flag,x,y);
+
+// confini
+ctx.strokeStyle="#000";
+Object.values(territories).forEach(t=>{
+const x=t.x*canvas.width;
+const y=t.y*canvas.height;
+t.adj.forEach(a=>{
+const o=territories[a];
+ctx.beginPath();
+ctx.moveTo(x,y);
+ctx.lineTo(o.x*canvas.width,o.y*canvas.height);
+ctx.stroke();
+});
 });
 
-// truppe
-game.troops=game.troops.filter(t=>t.update());
-game.troops.forEach(t=>t.draw());
+// territori
+Object.entries(territories).forEach(([id,t])=>{
+const x=t.x*canvas.width;
+const y=t.y*canvas.height;
+const owner=Object.keys(nations).find(n=>ownsTerritory(n,id));
+ctx.fillStyle=owner===player?"#22c55e":"#ef4444";
+ctx.beginPath();
+ctx.arc(x,y,t.capital?10:7,0,Math.PI*2);
+ctx.fill();
+ctx.fillStyle="white";
+ctx.font="14px Arial";
+ctx.textAlign="center";
+ctx.fillText(t.capital?"🏛️":"",x,y-12);
+});
 }
 
-// ================= LOOP =================
 function loop(){
-render();
+draw();
 requestAnimationFrame(loop);
 }
 loop();
 
-// START
-addNews("🚀 Nation Conquest Simulator avviato!");
+addNews("🌍 Mappa reale attiva – conquista per confini!");
 </script>
 </body>
 </html>
