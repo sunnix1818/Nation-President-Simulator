@@ -33,5 +33,10 @@ cities:[
 neighbors:["Francia","Italia"],
 poly:[[5,55],[16,55],[16,47],[5,47]]
 }
+const NATION_STATS = {
+Italia:{gdp:2100,army:90,pop:60},
+Francia:{gdp:3000,army:110,pop:67},
+Germania:{gdp:4200,army:85,pop:83}
+};
 
 ];
