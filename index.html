@@ -1,23 +1,96 @@
 <!DOCTYPE html>
-<html lang="it">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Grand Strategy</title>
-<link rel="stylesheet" href="style.css">
+<title>World Conquest Test</title>
+<style>
+body { margin:0; background:#0b1020; }
+canvas { display:block; }
+</style>
 </head>
+
 <body>
-
 <canvas id="map"></canvas>
 
-<div id="ui">
-  <h3 id="nationName"></h3>
-  <p>💰 Oro: <span id="gold"></span></p>
-  <p>⚔️ Esercito: <span id="mil"></span></p>
-</div>
-<canvas id="map"></canvas>
+<script>
+const canvas = document.getElementById("map");
+const ctx = canvas.getContext("2d");
 
-<script type="module" src="js/main.js"></script>
+function resize(){
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+}
+resize();
+onresize = resize;
+
+const nations = [
+  {
+    name:"Italia",
+    color:"#2ecc71",
+    poly:[[12,47],[18,47],[18,36],[12,36]]
+  },
+  {
+    name:"Francia",
+    color:"#3498db",
+    poly:[[2,51],[12,51],[12,43],[2,43]]
+  },
+  {
+    name:"Germania",
+    color:"#f1c40f",
+    poly:[[6,55],[15,55],[15,47],[6,47]]
+  }
+];
+
+function project(lon,lat){
+  return [
+    canvas.width/2 + lon*8,
+    canvas.height/2 - lat*8
+  ];
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  nations.forEach(n=>{
+    ctx.fillStyle = n.color;
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+    n.poly.forEach(([lon,lat],i)=>{
+      const [x,y]=project(lon,lat);
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  });
+}
+
+draw();
+
+canvas.onclick = e=>{
+  const x=e.offsetX, y=e.offsetY;
+
+  nations.forEach(n=>{
+    if(pointInPoly(x,y,n.poly)){
+      alert("Hai cliccato "+n.name);
+    }
+  });
+};
+
+function pointInPoly(px,py,poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const [xi,yi]=project(...poly[i]);
+    const [xj,yj]=project(...poly[j]);
+    const intersect=((yi>py)!=(yj>py)) &&
+      (px<(xj-xi)*(py-yi)/(yj-yi)+xi);
+    if(intersect) inside=!inside;
+  }
+  return inside;
+}
+</script>
 
 </body>
 </html>
-
