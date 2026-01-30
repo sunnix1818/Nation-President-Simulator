@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>World Conquest</title>
+<title>Grand Strategy Phase 4</title>
 <style>
 body{margin:0;background:#0b1020;color:white;font-family:Arial}
 canvas{display:block}
@@ -10,33 +10,363 @@ canvas{display:block}
 position:fixed;top:10px;left:10px;
 background:#000c;padding:12px;border-radius:10px
 }
+#log{
+position:fixed;right:10px;bottom:10px;
+width:280px;height:220px;overflow:auto;
+background:#000c;padding:10px;border-radius:10px;
+font-size:13px;
+}
+button{margin-top:5px;width:100%}
 </style>
 </head>
-<body>
 
+<body>
 <canvas id="map"></canvas>
 
 <div id="ui">
-Nazione: <span id="nation"></span><br>
+<b id="nation"></b><br>
 Territori: <span id="count"></span><br>
 GDP: <span id="gdp"></span><br>
 Esercito: <span id="army"></span><br>
+Morale: <span id="morale"></span><br>
 <button onclick="nextTurn()">Prossimo Mese</button>
 <button onclick="saveGame()">Salva</button>
 <button onclick="loadGame()">Carica</button>
 </div>
 
-<div id="log" style="
-position:fixed;right:10px;bottom:10px;
-background:#000c;padding:10px;
-width:260px;height:200px;overflow:auto;
-border-radius:10px"></div>
+<div id="log"></div>
 
+<script>
+const canvas=map;
+const ctx=canvas.getContext("2d");
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
+resize(); onresize=resize;
 
-<script src="js/data.js"></script>
-<script src="js/map.js"></script>
-<script src="js/draw.js"></script>
-<script src="js/game.js"></script>
+/* =====================
+   PROVINCE WORLD MAP
+===================== */
 
+const WORLD=[
+
+{ id:"north_italy", nation:"Italia",
+poly:[[6,47],[19,47],[19,42],[6,42]],
+capital:false, neighbors:["south_italy","france"] },
+
+{ id:"south_italy", nation:"Italia",
+poly:[[6,42],[19,42],[19,36],[6,36]],
+capital:true, cap:{lon:12,lat:41},
+neighbors:["north_italy"] },
+
+{ id:"france", nation:"Francia",
+poly:[[-5,51],[8,51],[8,43],[-5,43]],
+capital:true, cap:{lon:2,lat:48},
+neighbors:["north_italy","germany","spain"] },
+
+{ id:"germany", nation:"Germania",
+poly:[[5,55],[16,55],[16,47],[5,47]],
+capital:true, cap:{lon:13,lat:52},
+neighbors:["france","poland"] },
+
+{ id:"spain", nation:"Spagna",
+poly:[[-10,44],[3,44],[3,36],[-10,36]],
+capital:true, cap:{lon:-3,lat:40},
+neighbors:["france"] },
+
+{ id:"poland", nation:"Polonia",
+poly:[[16,55],[30,55],[30,47],[16,47]],
+capital:true, cap:{lon:21,lat:52},
+neighbors:["germany","russia"] },
+
+{ id:"russia", nation:"Russia",
+poly:[[30,70],[150,70],[150,50],[30,50]],
+capital:true, cap:{lon:37,lat:55},
+neighbors:["poland","china"] },
+
+{ id:"china", nation:"Cina",
+poly:[[75,50],[135,50],[135,20],[75,20]],
+capital:true, cap:{lon:116,lat:40},
+neighbors:["russia","india"] },
+
+{ id:"india", nation:"India",
+poly:[[68,35],[90,35],[90,8],[68,8]],
+capital:true, cap:{lon:77,lat:28},
+neighbors:["china"] }
+
+];
+
+/* =====================
+   NATION STATS
+===================== */
+
+const NATIONS=[...new Set(WORLD.map(p=>p.nation))];
+
+let stats={};
+NATIONS.forEach(n=>{
+stats[n]={
+gdp:2000+Math.random()*2000,
+army:80+Math.random()*50,
+morale:0.8,
+alliances:[]
+};
+});
+
+let player="Italia";
+
+/* =====================
+   OWNERSHIP
+===================== */
+
+WORLD.forEach(p=>p.owner=p.nation);
+
+/* =====================
+   CAMERA
+===================== */
+
+let camX=0,camY=0,zoom=1;
+function project(lon,lat){
+return[
+canvas.width/2+(lon*4+camX)*zoom,
+canvas.height/2-(lat*4-camY)*zoom
+];
+}
+
+/* =====================
+   DRAW
+===================== */
+
+function colorOf(n){
+return "#"+hashColor(n.owner);
+}
+
+function hashColor(s){
+let h=0;for(let i=0;i<s.length;i++)h=s.charCodeAt(i)+((h<<5)-h);
+return (h&0xFFFFFF).toString(16).padStart(6,"0");
+}
+
+function draw(){
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+WORLD.forEach(p=>{
+ctx.fillStyle=colorOf(p);
+ctx.strokeStyle="#000";
+ctx.beginPath();
+p.poly.forEach(([lon,lat],i)=>{
+const[x,y]=project(lon,lat);
+i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+});
+ctx.closePath();
+ctx.fill();
+ctx.stroke();
+
+if(p.capital){
+const[x,y]=project(p.cap.lon,p.cap.lat);
+ctx.fillStyle="#fff";
+ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();
+}
+});
+
+drawArmies();
+}
+
+/* =====================
+   GEOMETRY
+===================== */
+
+function pointInPoly(px,py,poly){
+let inside=false;
+for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+const[xi,yi]=project(...poly[i]);
+const[xj,yj]=project(...poly[j]);
+const hit=((yi>py)!=(yj>py)) &&
+(px<(xj-xi)*(py-yi)/(yj-yi)+xi);
+if(hit) inside=!inside;
+}
+return inside;
+}
+
+/* =====================
+   GAME LOGIC
+===================== */
+
+function provincesOf(n){return WORLD.filter(p=>p.owner===n)}
+
+function borderingOwned(attacker,targetProv){
+return provincesOf(attacker)
+.some(p=>p.neighbors.includes(targetProv.id));
+}
+
+canvas.onclick=e=>{
+const x=e.offsetX,y=e.offsetY;
+
+for(const p of WORLD){
+if(!pointInPoly(x,y,p.poly)) continue;
+if(p.owner===player) return;
+if(!borderingOwned(player,p)){log("No confine");return;}
+launchArmy(p);
+return;
+}
+};
+
+let armies=[];
+
+function launchArmy(target){
+if(stats[player].army<8){log("Truppe basse");return;}
+
+stats[player].army-=8;
+
+const from=provincesOf(player)[0];
+armies.push({
+lon:from.poly[0][0],
+lat:from.poly[0][1],
+target,
+owner:player
+});
+
+log("⚔️ Attacco "+target.id);
+}
+
+function drawArmies(){
+armies.forEach(a=>{
+const[x,y]=project(a.lon,a.lat);
+ctx.fillStyle="#ff0";
+ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();
+});
+}
+
+function updateArmies(){
+armies=armies.filter(a=>{
+a.lon+=(centerLon(a.target)-a.lon)*0.05;
+a.lat+=(centerLat(a.target)-a.lat)*0.05;
+
+if(Math.abs(a.lon-centerLon(a.target))<1){
+battle(a.target,a.owner);
+return false;
+}
+return true;
+});
+}
+
+function centerLon(p){return p.capital?p.cap.lon:p.poly[0][0]}
+function centerLat(p){return p.capital?p.cap.lat:p.poly[0][1]}
+
+/* =====================
+   BATTLE SYSTEM
+===================== */
+
+function battle(p,att){
+const def=p.owner;
+
+const atkPower = stats[att].army * stats[att].morale;
+const defPower = stats[def].army * stats[def].morale;
+
+if(atkPower > defPower*0.7){
+p.owner=att;
+stats[att].morale+=0.05;
+stats[def].morale-=0.05;
+log("🏴 Presa "+p.id);
+
+if(p.capital){
+WORLD.filter(x=>x.nation===p.nation)
+.forEach(x=>x.owner=att);
+log("👑 Capitale caduta → nazione annessa");
+}
+}else{
+log("🛡 Respinto");
+}
+}
+
+/* =====================
+   AI
+===================== */
+
+function aiTurn(){
+NATIONS.forEach(n=>{
+if(n===player) return;
+if(stats[n].army<20) return;
+
+const targets=WORLD.filter(p=>p.owner!==n && borderingOwned(n,p));
+if(!targets.length) return;
+
+if(Math.random()<0.4){
+battle(targets[0],n);
+}
+});
+}
+
+/* =====================
+   ECONOMY
+===================== */
+
+function nextTurn(){
+NATIONS.forEach(n=>{
+stats[n].gdp*=1.02;
+stats[n].army += stats[n].gdp/500;
+stats[n].morale = Math.min(1, stats[n].morale+0.01);
+});
+aiTurn();
+updateUI();
+}
+
+/* =====================
+   UI
+===================== */
+
+function updateUI(){
+nation.textContent=player;
+count.textContent=provincesOf(player).length;
+gdp.textContent=Math.floor(stats[player].gdp);
+army.textContent=Math.floor(stats[player].army);
+morale.textContent=stats[player].morale.toFixed(2);
+}
+
+function log(t){
+logDiv.innerHTML=t+"<br>"+logDiv.innerHTML;
+}
+
+/* =====================
+   SAVE
+===================== */
+
+function saveGame(){
+localStorage.setItem("phase4",
+JSON.stringify({WORLD,stats}));
+log("💾 Salvato");
+}
+
+function loadGame(){
+const s=JSON.parse(localStorage.getItem("phase4"));
+Object.assign(WORLD,s.WORLD);
+stats=s.stats;
+log("📂 Caricato");
+}
+
+/* =====================
+   CAMERA
+===================== */
+
+let drag=false,dx,dy;
+canvas.onmousedown=e=>{drag=true;dx=e.clientX;dy=e.clientY};
+onmouseup=()=>drag=false;
+onmousemove=e=>{
+if(!drag)return;
+camX+=(e.clientX-dx)/zoom;
+camY+=(e.clientY-dy)/zoom;
+dx=e.clientX;dy=e.clientY;
+};
+canvas.onwheel=e=>zoom*=e.deltaY>0?0.9:1.1;
+
+/* =====================
+   LOOP
+===================== */
+
+function loop(){
+updateArmies();
+draw();
+requestAnimationFrame(loop);
+}
+
+updateUI();
+loop();
+</script>
 </body>
 </html>
