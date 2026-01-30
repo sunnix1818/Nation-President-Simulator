@@ -17,9 +17,21 @@ background:#000c;padding:12px;border-radius:10px
 <canvas id="map"></canvas>
 
 <div id="ui">
-Nazione: <span id="nation">Italia</span><br>
-Territori: <span id="count">1</span>
+Nazione: <span id="nation"></span><br>
+Territori: <span id="count"></span><br>
+GDP: <span id="gdp"></span><br>
+Esercito: <span id="army"></span><br>
+<button onclick="nextTurn()">Prossimo Mese</button>
+<button onclick="saveGame()">Salva</button>
+<button onclick="loadGame()">Carica</button>
 </div>
+
+<div id="log" style="
+position:fixed;right:10px;bottom:10px;
+background:#000c;padding:10px;
+width:260px;height:200px;overflow:auto;
+border-radius:10px"></div>
+
 
 <script src="js/data.js"></script>
 <script src="js/map.js"></script>
