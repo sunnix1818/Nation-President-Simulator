@@ -1,242 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>World Grand Strategy Engine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Conquest Simulator</title>
 <style>
-body{margin:0;background:#0b1020;color:white;font-family:Arial}
-canvas{display:block}
-
-#ui{
-position:fixed;left:10px;top:10px;
-background:#000d;padding:12px;border-radius:10px;
-width:280px
-}
-button,select{width:100%;margin-top:5px}
-
-#log{
-position:fixed;right:10px;bottom:10px;
-width:360px;height:260px;overflow:auto;
-background:#000c;padding:10px;border-radius:10px;
-font-size:13px;
-}
+    body { margin:0; overflow:hidden; font-family:sans-serif; background:#111;}
+    canvas { display:block; }
+    #ui {
+        position:absolute; top:10px; left:10px; padding:15px; background:rgba(0,0,0,0.7);
+        color:white; border-radius:10px; width:220px; font-size:14px;
+    }
+    #ui h2 { margin:0 0 10px 0; font-size:16px; }
+    .stat-bar { width:100%; height:12px; background:rgba(255,255,255,0.2); border-radius:6px; margin:4px 0; }
+    .stat-fill { height:100%; border-radius:6px; background:green; }
 </style>
 </head>
 <body>
-
 <canvas id="map"></canvas>
-
 <div id="ui">
-<b id="nation"></b><br>
-Data: <span id="date"></span><br>
-Regioni: <span id="regions"></span><br>
-GDP: <span id="gdp"></span><br>
-Esercito: <span id="army"></span><br>
-Governo: <span id="gov"></span><br>
-
-<button onclick="nextDay()">⏩ Giorno</button>
-<button onclick="nextMonth()">📅 Mese</button>
-<button onclick="nextYear()">📆 Anno</button>
-
-<button onclick="recruit()">⚔️ Recluta</button>
-<button onclick="research()">🧪 Ricerca</button>
+    <h2 id="nationName">Seleziona una nazione</h2>
+    💰 GDP: <span id="gdp">0</span><br>
+    👥 Popolazione: <span id="pop">0</span>M<br>
+    ⚔️ Esercito: <span id="military">0</span><br>
+    🏰 Città conquistate: <span id="controlled">0</span><br>
+    <div class="stat-bar"><div id="controlledBar" class="stat-fill"></div></div>
 </div>
-
-<div id="log"></div>
-
-<script>
-/* ================= CANVAS ================= */
-
-const canvas=map;
-const ctx=canvas.getContext("2d");
-function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
-resize(); onresize=resize;
-
-function proj(lon,lat){
-return [
-canvas.width*(lon+180)/360,
-canvas.height*(90-lat)/180
-];
-}
-
-/* ================= BIOMI MONDO ================= */
-
-const BIOMES=[
-{type:"deserto",color:"#c2b280",box:[-20,30,60,10]},
-{type:"foresta",color:"#2e8b57",box:[-130,60,-60,30]},
-{type:"tundra",color:"#bcd",box:[60,75,180,55]}
-];
-
-function drawBiomes(){
-BIOMES.forEach(b=>{
-ctx.fillStyle=b.color;
-const [x1,y1]=proj(b.box[0],b.box[1]);
-const [x2,y2]=proj(b.box[2],b.box[3]);
-ctx.fillRect(x1,y1,x2-x1,y2-y1);
-});
-}
-
-/* ================= REGIONI BASE (ESPANDIBILI) ================= */
-
-const R=[
-{id:"italy",nation:"Italia",poly:[[6,47],[19,47],[19,36],[6,36]]},
-{id:"france",nation:"Francia",poly:[[-5,51],[8,51],[8,43],[-5,43]]},
-{id:"germany",nation:"Germania",poly:[[5,55],[16,55],[16,47],[5,47]]},
-{id:"usa",nation:"USA",poly:[[-125,49],[-66,49],[-66,25],[-125,25]]},
-{id:"china",nation:"Cina",poly:[[90,45],[120,45],[120,20],[90,20]]},
-{id:"india",nation:"India",poly:[[70,35],[90,35],[90,8],[70,8]]},
-{id:"brazil",nation:"Brasile",poly:[[-75,5],[-35,5],[-35,-30],[-75,-30]]},
-{id:"australia",nation:"Australia",poly:[[112,-10],[155,-10],[155,-45],[112,-45]]}
-];
-
-R.forEach(x=>x.owner=x.nation);
-
-const N=[...new Set(R.map(x=>x.nation))];
-
-/* ================= GOVERNI ================= */
-
-const GOV_TYPES=["Democrazia","Monarchia","Dittatura","Repubblica"];
-
-/* ================= LEADER ================= */
-
-function newLeader(){
-return {
-name:"Leader_"+Math.floor(Math.random()*999),
-age:40+Math.floor(Math.random()*20),
-mil:Math.random(),
-eco:Math.random(),
-dip:Math.random()
-};
-}
-
-/* ================= STATI ================= */
-
-let S={};
-N.forEach(n=>{
-S[n]={
-gdp:2000,
-army:100,
-gov:GOV_TYPES[Math.floor(Math.random()*GOV_TYPES.length)],
-leader:newLeader(),
-tech:{mil:1,eco:1,sci:1}
-};
-});
-
-let player="Italia";
-
-/* ================= CALENDARIO ================= */
-
-let day=1,month=1,year=1900;
-
-function nextDay(){
-day++;
-if(day>30){day=1;month++;monthTick();}
-if(month>12){month=1;yearTick();}
-updateUI();
-}
-
-function nextMonth(){
-month++;
-monthTick();
-if(month>12){month=1;yearTick();}
-updateUI();
-}
-
-function nextYear(){
-yearTick();
-updateUI();
-}
-
-function monthTick(){
-N.forEach(n=>{
-S[n].gdp*=1.01+S[n].tech.eco*0.002;
-S[n].army+=S[n].gdp/1000;
-});
-aiMonth();
-}
-
-function yearTick(){
-year++;
-N.forEach(n=>{
-S[n].leader.age++;
-if(S[n].leader.age>75){
-S[n].leader=newLeader();
-log(n+" ha un nuovo leader");
-}
-});
-}
-
-/* ================= TECH ================= */
-
-function research(){
-S[player].tech.sci+=0.1;
-S[player].gdp-=100;
-}
-
-/* ================= AZIONI ================= */
-
-function recruit(){
-S[player].army+=30;
-S[player].gdp-=80;
-}
-
-/* ================= AI ================= */
-
-function aiMonth(){
-N.forEach(n=>{
-if(Math.random()<0.3) S[n].tech.mil+=0.05;
-});
-}
-
-/* ================= DRAW ================= */
-
-function draw(){
-ctx.clearRect(0,0,canvas.width,canvas.height);
-drawBiomes();
-
-R.forEach(p=>{
-ctx.fillStyle=color(p.owner);
-ctx.strokeStyle="#000";
-ctx.beginPath();
-p.poly.forEach(([lon,lat],i)=>{
-const[x,y]=proj(lon,lat);
-i?ctx.lineTo(x,y):ctx.moveTo(x,y);
-});
-ctx.closePath();
-ctx.fill();
-ctx.stroke();
-});
-}
-
-function color(n){
-let h=0;for(let i=0;i<n.length;i++)h=n.charCodeAt(i)+((h<<5)-h);
-return "#"+(h&0xffffff).toString(16).padStart(6,"0");
-}
-
-/* ================= UI ================= */
-
-function updateUI(){
-nation.textContent=player;
-date.textContent=day+"/"+month+"/"+year;
-regions.textContent=R.filter(x=>x.owner===player).length;
-gdp.textContent=Math.floor(S[player].gdp);
-army.textContent=Math.floor(S[player].army);
-gov.textContent=S[player].gov;
-}
-
-function log(t){
-logDiv.innerHTML=t+"<br>"+logDiv.innerHTML;
-}
-
-/* ================= LOOP ================= */
-
-function loop(){
-draw();
-requestAnimationFrame(loop);
-}
-
-updateUI();
-loop();
-</script>
+<script src="game.js"></script>
 </body>
 </html>
