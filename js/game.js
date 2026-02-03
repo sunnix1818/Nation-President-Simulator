@@ -1,160 +1,164 @@
-let playerNation="Italia";
-let armies=[];
-let stats=JSON.parse(JSON.stringify(NATION_STATS));
+const canvas = document.getElementById("map");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-WORLD.forEach(n=>{
-n.owner=n.name;
-n.ownerColor=n.color;
-});
+let scale = 1, offsetX = 0, offsetY = 0;
+let isDragging=false, dragStart={x:0,y:0};
+let hoveredNation = null;
+let selectedNation = null;
 
-function log(msg){
-const d=document.getElementById("log");
-d.innerHTML = msg+"<br>"+d.innerHTML;
-}
+// dati delle nazioni (qui potresti usare GeoJSON completo)
+let countriesData = [];
 
-function getOwned(name){
-return WORLD.filter(n=>n.owner===name);
-}
+fetch("data/countries.geojson")
+  .then(res => res.json())
+  .then(geojson => {
+    countriesData = geojson.features.filter(f=>f.geometry && Array.isArray(f.geometry.coordinates));
+    // aggiungi campi di gioco
+    countriesData.forEach(c=>{
+        c.controlled=false;
+        c.playerOwned=false;
+        // calcolo centro per capitale
+        c.capitalX = 0; c.capitalY = 0;
+        const coords = c.geometry.type==="Polygon"? c.geometry.coordinates : c.geometry.coordinates.flat(2);
+        let lons=[], lats=[];
+        coords.forEach(([lon,lat])=>{ lons.push(lon); lats.push(lat);});
+        c.capitalLon = (Math.min(...lons)+Math.max(...lons))/2;
+        c.capitalLat = (Math.min(...lats)+Math.max(...lats))/2;
+        [c.capitalX,c.capitalY]=proj(c.capitalLon,c.capitalLat);
+        // valori demo
+        c.gdp = Math.floor(Math.random()*1000)+500;
+        c.pop = Math.floor(Math.random()*200)+50;
+        c.military = Math.floor(Math.random()*200)+50;
+    });
+    drawMap();
+  })
+  .catch(err=>console.error(err));
 
-function canAttack(fromOwner,target){
-return getOwned(fromOwner)
-.some(t=>t.neighbors.includes(target.name));
-}
-
-canvas.onclick=e=>{
-const x=e.offsetX,y=e.offsetY;
-
-WORLD.forEach(n=>{
-if(!pointInPoly(x,y,n.poly)) return;
-if(n.owner===playerNation) return;
-if(!canAttack(playerNation,n)){
-log("❌ Non confinante");
-return;
-}
-
-launchArmy(playerNation,n.name);
-});
+window.onresize = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    drawMap();
 };
 
-function launchArmy(from,targetName){
-if(stats[from].army<10){
-log("❌ Esercito insufficiente");
-return;
+// proiezione equirettangolare semplice
+function proj(lon, lat){
+    const x = (lon+180)/360 * canvas.width*scale + offsetX;
+    const y = (90-lat)/180 * canvas.height*scale + offsetY;
+    return [x,y];
 }
 
-stats[from].army -= 10;
+function color(name){
+    let h=0;
+    for(let i=0;i<name.length;i++) h=name.charCodeAt(i)+((h<<5)-h);
+    return "#" + ((h & 0xffffff)>>>0).toString(16).padStart(6,"0");
+}
 
-const fromPoly=getOwned(from)[0].poly[0];
-const to=WORLD.find(n=>n.name===targetName).capital;
+function drawPolygon(coords){
+    coords.forEach(ring=>{
+        if(!Array.isArray(ring)) return;
+        ring.forEach(([lon,lat],i)=>{
+            const [x,y]=proj(lon,lat);
+            if(i===0) ctx.moveTo(x,y);
+            else ctx.lineTo(x,y);
+        });
+        ctx.closePath();
+    });
+}
 
-armies.push({
-x:fromPoly[0],
-y:fromPoly[1],
-tx:to.lon,
-ty:to.lat,
-owner:from,
-target:targetName,
-progress:0
+function drawMap(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if(!countriesData.length) return;
+
+    // fill nazioni
+    countriesData.forEach(c=>{
+        ctx.beginPath();
+        if(c.geometry.type==="Polygon") drawPolygon(c.geometry.coordinates);
+        else if(c.geometry.type==="MultiPolygon") c.geometry.coordinates.forEach(poly=>drawPolygon(poly));
+        ctx.fillStyle = c.playerOwned? "rgba(0,255,0,0.5)" : color(c.properties.ADMIN || c.properties.NAME);
+        ctx.fill();
+    });
+
+    // confini
+    countriesData.forEach(c=>{
+        ctx.beginPath();
+        if(c.geometry.type==="Polygon") drawPolygon(c.geometry.coordinates);
+        else if(c.geometry.type==="MultiPolygon") c.geometry.coordinates.forEach(poly=>drawPolygon(poly));
+        ctx.strokeStyle="#222";
+        ctx.lineWidth=1;
+        ctx.stroke();
+    });
+
+    // capitali
+    countriesData.forEach(c=>{
+        ctx.fillStyle="#ff0000";
+        ctx.beginPath();
+        ctx.arc(c.capitalX,c.capitalY,5,0,Math.PI*2);
+        ctx.fill();
+    });
+
+    updateUI();
+}
+
+// click per selezione/conquista
+canvas.addEventListener("click",e=>{
+    const mx = e.offsetX;
+    const my = e.offsetY;
+    countriesData.forEach(c=>{
+        const dx=c.capitalX-mx;
+        const dy=c.capitalY-my;
+        if(Math.sqrt(dx*dx+dy*dy)<8){
+            // controllo confine: deve confinare con playerOwned
+            if(!c.playerOwned){
+                if(!selectedNation || sharesBorder(c,selectedNation)){
+                    c.playerOwned=true;
+                    selectedNation=c;
+                } else {
+                    alert("Non puoi conquistare questa nazione: non confina con il tuo territorio!");
+                }
+            } else {
+                selectedNation=c;
+            }
+        }
+    });
+    drawMap();
 });
 
-log("⚔️ Attacco verso "+targetName);
+// funzione demo confine semplice (qui puoi fare controllo reale con GeoJSON dei vicini)
+function sharesBorder(c1,c2){
+    if(!c2) return true; // prima conquista libera
+    // per demo, basta vicinanza capitale < 100 px
+    const dx=c1.capitalX-c2.capitalX;
+    const dy=c1.capitalY-c2.capitalY;
+    return Math.sqrt(dx*dx+dy*dy)<120;
 }
 
-function updateArmies(){
-armies=armies.filter(a=>{
-a.progress+=0.02;
-if(a.progress>=1){
-resolveBattle(a);
-return false;
-}
-a.x += (a.tx-a.x)*0.05;
-a.y += (a.ty-a.y)*0.05;
-return true;
+// pan e zoom
+canvas.addEventListener("mousedown",e=>{isDragging=true; dragStart={x:e.clientX-offsetX, y:e.clientY-offsetY};});
+canvas.addEventListener("mouseup",e=>{isDragging=false;});
+canvas.addEventListener("mouseleave",e=>{isDragging=false;});
+canvas.addEventListener("mousemove",e=>{
+    if(isDragging){ offsetX=e.clientX-dragStart.x; offsetY=e.clientY-dragStart.y; drawMap(); }
 });
-}
-
-function resolveBattle(a){
-const t=WORLD.find(n=>n.name===a.target);
-const atk=stats[a.owner].army;
-const def=stats[t.owner].army;
-
-if(atk > def*0.6){
-annexNation(t,a.owner);
-log("🏴 "+a.owner+" conquista "+t.name);
-}else{
-log("🛡 Difesa riuscita "+t.name);
-}
-}
-
-function annexNation(n,newOwner){
-WORLD.forEach(t=>{
-if(t.name===n.name){
-t.owner=newOwner;
-t.ownerColor="#2ecc71";
-}
+canvas.addEventListener("wheel",e=>{
+    e.preventDefault();
+    const oldScale=scale;
+    scale *= e.deltaY>0?0.9:1.1;
+    scale=Math.max(0.2,Math.min(5,scale));
+    offsetX -= (e.offsetX-offsetX)*(scale/oldScale-1);
+    offsetY -= (e.offsetY-offsetY)*(scale/oldScale-1);
+    drawMap();
 });
-}
 
-function aiTurn(){
-WORLD.forEach(n=>{
-if(n.owner===playerNation) return;
-if(Math.random()<0.3){
-const targets=n.neighbors
-.map(x=>WORLD.find(w=>w.name===x))
-.filter(t=>t.owner!==n.owner);
-if(targets.length){
-launchArmy(n.owner,targets[0].name);
-}
-}
-});
-}
-
-function nextTurn(){
-Object.keys(stats).forEach(k=>{
-stats[k].gdp *= 1.01;
-stats[k].army += 2;
-});
-aiTurn();
-updateUI();
-}
-
+// UI
 function updateUI(){
-document.getElementById("nation").textContent=playerNation;
-document.getElementById("count").textContent=getOwned(playerNation).length;
-document.getElementById("gdp").textContent=Math.floor(stats[playerNation].gdp);
-document.getElementById("army").textContent=Math.floor(stats[playerNation].army);
+    if(!selectedNation) return;
+    document.getElementById("nationName").textContent=selectedNation.properties.ADMIN || selectedNation.properties.NAME;
+    document.getElementById("gdp").textContent=selectedNation.gdp;
+    document.getElementById("pop").textContent=selectedNation.pop;
+    document.getElementById("military").textContent=selectedNation.military;
+    document.getElementById("controlled").textContent=countriesData.filter(c=>c.playerOwned).length;
+    const pct = countriesData.filter(c=>c.playerOwned).length/countriesData.length*100;
+    document.getElementById("controlledBar").style.width=pct+"%";
 }
-
-function saveGame(){
-localStorage.setItem("save",JSON.stringify({WORLD,stats}));
-log("💾 Salvato");
-}
-
-function loadGame(){
-const s=JSON.parse(localStorage.getItem("save"));
-Object.assign(WORLD,s.WORLD);
-stats=s.stats;
-log("📂 Caricato");
-drawWorld();
-}
-
-function drawArmies(){
-armies.forEach(a=>{
-const [x,y]=project(a.x,a.y);
-ctx.fillStyle="#ff0";
-ctx.beginPath();
-ctx.arc(x,y,5,0,Math.PI*2);
-ctx.fill();
-});
-}
-
-function loop(){
-updateArmies();
-drawWorld();
-drawArmies();
-requestAnimationFrame(loop);
-}
-
-updateUI();
-drawWorld();
-loop();
